@@ -1,0 +1,3962 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestión de Horarios — Hotel</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+/* ── RESET ── */
+*{margin:0;padding:0;box-sizing:border-box}
+
+:root {
+  --ink: #1a1a2e;
+  --ink2: #2d2d4a;
+  --gold: #c9a84c;
+  --gold2: #e8c97a;
+  --cream: #faf8f3;
+  --cream2: #f0ece0;
+  --sand: #e8dfc8;
+  --mist: #b8bcc8;
+  --surface: #ffffff;
+  --accent: #7b6fa0;
+  --accent2: #a395c8;
+  --danger: #c0504d;
+  --success: #4a8c6a;
+  --warn: #c07830;
+  --radius: 12px;
+  --shadow: 0 4px 24px rgba(26,26,46,0.10);
+  --shadow-lg: 0 12px 48px rgba(26,26,46,0.16);
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--cream);
+  color: var(--ink);
+  min-height: 100vh;
+  font-size: 14px;
+}
+
+body::before {
+  content:'';
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:9999;opacity:.5;
+}
+
+/* ── NAV ── */
+.navbar {
+  background: var(--ink);
+  color: var(--cream);
+  position: sticky;
+  top: 0;
+  z-index: 500;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.25);
+}
+.navbar-inner {
+  padding: 0 1.5rem;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+  gap: 1rem;
+}
+.navbar-tabs {
+  background: var(--ink2);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding: 0 1.5rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  display: none; /* navegación via sidebar */
+}
+.navbar-tabs::-webkit-scrollbar { display: none; }
+.navbar-tabs-inner {
+  max-width: 1600px;
+  margin: 0 auto;
+  display: flex;
+  gap: 2px;
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-icon {
+  width: 36px; height: 36px;
+  background: var(--gold);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+.brand h1 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.3rem;
+  letter-spacing: 0.01em;
+  color: var(--cream);
+}
+.brand span { color: var(--gold); }
+.nav-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ── BUTTONS ── */
+.btn {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.btn:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+.btn:active { transform: translateY(0); }
+.btn-ghost { background: rgba(255,255,255,0.1); color: var(--cream); border: 1px solid rgba(255,255,255,0.15); }
+.btn-ghost:hover { background: rgba(255,255,255,0.18); }
+.btn-gold { background: var(--gold); color: var(--ink); }
+.btn-gold:hover { background: var(--gold2); }
+.btn-primary { background: var(--ink); color: var(--cream); }
+.btn-primary:hover { background: var(--ink2); }
+.btn-success { background: var(--success); color: white; }
+.btn-success:hover { background: #3a7a5a; }
+.btn-warn { background: var(--warn); color: white; }
+.btn-danger { background: var(--danger); color: white; }
+.btn-accent { background: var(--accent); color: white; }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+.btn-outline { background: transparent; border: 1.5px solid var(--ink); color: var(--ink); }
+.btn-outline:hover { background: var(--ink); color: var(--cream); }
+
+/* ── LAYOUT ── */
+.container { max-width: 1600px; margin: 0 auto; padding: 2rem; }
+
+/* ── REQUEST BADGE ── */
+.req-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--danger); color: white; border-radius: 50%;
+  width: 16px; height: 16px; font-size: 9px; font-weight: 700;
+  position: relative; top: -6px; right: -2px; margin-left: -4px;
+}
+
+/* ── NAV TABS (second row) ── */
+.nav-tabs { display: none; } /* desktop: handled by .navbar-tabs-inner */
+.nav-tab {
+  padding: 9px 16px; background: none; border: none; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 13px;
+  color: var(--mist); border-bottom: 3px solid transparent;
+  transition: all 0.2s; white-space: nowrap;
+}
+.nav-tab:hover { color: var(--cream); background: rgba(255,255,255,0.05); }
+.nav-tab.active { color: var(--gold); border-bottom-color: var(--gold); font-weight: 700; background: none; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ── HAMBURGER BUTTON ── */
+.hamburger {
+  display: flex; flex-direction: column; justify-content: center;
+  align-items: center; gap: 5px;
+  background: none; border: none;
+  cursor: pointer; padding: 6px 8px; border-radius: 7px;
+  transition: background 0.2s; flex-shrink: 0;
+}
+.hamburger:hover { background: rgba(255,255,255,0.1); }
+.ham-line {
+  display: block; width: 20px; height: 2px;
+  background: var(--cream); border-radius: 2px;
+  transition: all 0.25s ease;
+}
+.hamburger.open .ham-line:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.hamburger.open .ham-line:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.hamburger.open .ham-line:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* ── SIDEBAR ── */
+.sidebar-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(10,10,20,0.6); z-index: 800;
+  backdrop-filter: blur(3px);
+  animation: fadeIn 0.2s ease;
+}
+.sidebar-overlay.open { display: block; }
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+.sidebar {
+  position: fixed; top: 0; left: 0; bottom: 0;
+  width: 260px; background: var(--ink);
+  z-index: 801; display: flex; flex-direction: column;
+  transform: translateX(-100%);
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 4px 0 32px rgba(0,0,0,0.4);
+}
+.sidebar.open { transform: translateX(0); }
+
+.sidebar-header {
+  padding: 1.2rem 1.4rem;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.sidebar-brand { display: flex; align-items: center; gap: 10px; }
+.sidebar-brand-icon {
+  width: 32px; height: 32px; background: var(--gold); border-radius: 7px;
+  display: flex; align-items: center; justify-content: center; font-size: 16px;
+}
+.sidebar-brand h2 {
+  font-family: 'DM Serif Display', serif; font-size: 1rem; color: var(--cream);
+}
+.sidebar-brand h2 span { color: var(--gold); }
+.sidebar-close {
+  background: none; border: none; color: var(--mist); cursor: pointer;
+  font-size: 1.3rem; padding: 4px 8px; border-radius: 6px;
+  transition: color 0.2s;
+}
+.sidebar-close:hover { color: var(--cream); }
+
+.sidebar-nav {
+  flex: 1; padding: 0.8rem 0.6rem; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.sidebar-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 14px; border-radius: 9px; border: none;
+  background: none; color: var(--mist); cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+  text-align: left; width: 100%; transition: all 0.18s;
+  position: relative;
+}
+.sidebar-item:hover { background: rgba(255,255,255,0.07); color: var(--cream); }
+.sidebar-item.active { background: rgba(201,168,76,0.15); color: var(--gold); font-weight: 700; }
+.sidebar-item.active::before {
+  content: ''; position: absolute; left: 0; top: 20%; bottom: 20%;
+  width: 3px; background: var(--gold); border-radius: 0 3px 3px 0;
+}
+.sidebar-item-icon { font-size: 17px; flex-shrink: 0; width: 24px; text-align: center; }
+.sidebar-item-label { flex: 1; }
+.sidebar-item-badge {
+  background: var(--danger); color: white; border-radius: 10px;
+  padding: 1px 7px; font-size: 10px; font-weight: 700; flex-shrink: 0;
+}
+
+.sidebar-divider {
+  height: 1px; background: rgba(255,255,255,0.07);
+  margin: 6px 0.6rem;
+}
+
+.sidebar-footer {
+  padding: 1rem 1.2rem;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  font-size: 11px; color: var(--mist);
+}
+
+/* ── CARD ── */
+.card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+  border: 1px solid rgba(26,26,46,0.06);
+}
+.card-header {
+  background: var(--ink);
+  color: var(--cream);
+  padding: 1.1rem 1.5rem;
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+  display: flex; align-items: center; gap: 10px;
+}
+.card-header .icon { color: var(--gold); font-size: 1.1rem; }
+.card-body { padding: 1.8rem; }
+
+/* ── FORM ── */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.2rem;
+  margin-bottom: 1.5rem;
+}
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group label {
+  font-weight: 600; font-size: 12px; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--ink2); opacity: 0.7;
+}
+.form-group input, .form-group select {
+  padding: 10px 14px; border: 1.5px solid var(--sand); border-radius: 8px;
+  font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--ink);
+  background: var(--cream); transition: all 0.2s;
+}
+.form-group input:focus, .form-group select:focus {
+  outline: none; border-color: var(--gold); background: white;
+  box-shadow: 0 0 0 3px rgba(201,168,76,0.15);
+}
+
+/* ── ALERTS ── */
+.alert {
+  padding: 12px 16px; border-radius: 8px; margin-bottom: 1rem;
+  display: flex; align-items: flex-start; gap: 10px;
+  font-size: 13px; line-height: 1.5;
+}
+.alert-info    { background: #eff6ff; color: #1d4ed8; border-left: 3px solid #3b82f6; }
+.alert-warn    { background: #fffbeb; color: #92400e; border-left: 3px solid #f59e0b; }
+.alert-success { background: #f0fdf4; color: #166534; border-left: 3px solid #22c55e; }
+.alert-danger  { background: #fef2f2; color: #991b1b; border-left: 3px solid #ef4444; }
+
+/* ── METRICS TABLE ── */
+.metrics-table-wrap {
+  overflow-x: auto; margin-top: 1rem; border-radius: 10px;
+  border: 1.5px solid var(--sand);
+}
+.metrics-table { width: 100%; border-collapse: collapse; min-width: 640px; }
+.metrics-table th {
+  background: var(--ink); color: var(--cream);
+  padding: 9px 12px; font-size: 12px; font-weight: 700;
+  text-align: center; border: 1px solid rgba(255,255,255,0.08); white-space: nowrap;
+}
+.metrics-table th small { color: var(--gold); font-weight: 400; display:block; margin-top:1px; }
+.metrics-table td { border: 1px solid var(--sand); padding: 0; background: white; }
+.metrics-table td:first-child {
+  background: var(--cream2); padding: 8px 14px; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent);
+  white-space: nowrap; min-width: 110px;
+}
+.metrics-table tr:hover td { background: #fafaf5; }
+.metrics-table tr:hover td:first-child { background: var(--cream2); }
+.metric-input {
+  width: 100%; border: none; background: transparent; text-align: center;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+  color: var(--ink); padding: 9px 6px; outline: none; transition: background 0.15s; min-width: 80px;
+}
+.metric-input:focus { background: rgba(201,168,76,0.12); }
+.metric-input::placeholder { color: #ccc; font-weight: 400; }
+
+/* ── SPREADSHEET ── */
+.spreadsheet-wrapper {
+  overflow-x: auto; border-radius: 10px; border: 1px solid var(--sand);
+}
+.spreadsheet {
+  width: 100%; border-collapse: collapse; font-size: 12px; min-width: 1100px;
+}
+.spreadsheet th {
+  background: var(--ink); color: var(--cream); padding: 10px 8px;
+  font-weight: 600; font-size: 12px; text-align: center;
+  border: 1px solid rgba(255,255,255,0.08); position: sticky; top: 0; z-index: 2;
+}
+.spreadsheet th small { color: var(--gold); font-weight: 400; display: block; margin-top: 2px; }
+.spreadsheet td {
+  border: 1px solid #eeecdf; padding: 0; text-align: center; min-width: 130px;
+}
+.spreadsheet tr:hover td { background: #faf9f4; }
+.row-label {
+  background: var(--cream2) !important; font-weight: 600;
+  text-align: left !important; padding: 10px 14px !important;
+  color: var(--ink2); min-width: 170px;
+  position: sticky; left: 0; z-index: 1; border-right: 2px solid var(--sand) !important;
+}
+.section-header {
+  background: var(--ink2) !important; color: var(--gold) !important;
+  font-family: 'DM Serif Display', serif; font-size: 12px !important;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 8px 14px !important; text-align: left !important;
+}
+.cell-input {
+  width: 100%; border: none; background: transparent; text-align: center;
+  font-size: 12px; padding: 8px 6px; outline: none;
+  font-family: 'DM Sans', sans-serif; color: var(--ink); transition: background 0.15s;
+}
+.cell-input:focus { background: rgba(201,168,76,0.1); }
+.row-metric td  { background: #fafaf7; }
+.row-morning td { background: #f5f9ff; }
+.row-evening td { background: #fdf5ff; }
+.row-other td   { background: #fffaf5; }
+
+/* ── STATS ── */
+.stats-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem; margin-bottom: 1.5rem;
+}
+.stat-card {
+  background: var(--ink); color: var(--cream);
+  padding: 1.2rem; border-radius: var(--radius); text-align: center;
+  position: relative; overflow: hidden;
+}
+.stat-card::after {
+  content:''; position:absolute; top:-20px; right:-20px;
+  width:80px; height:80px; background: var(--gold);
+  border-radius: 50%; opacity: 0.07;
+}
+.stat-card h3 {
+  font-family: 'DM Serif Display', serif; font-size: 2.2rem;
+  color: var(--gold); line-height: 1; margin-bottom: 6px;
+}
+.stat-card p { font-size: 12px; opacity: 0.75; }
+
+/* ── BADGES ── */
+.badge {
+  display: inline-block; padding: 2px 8px; border-radius: 12px;
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.04em; margin-top: 3px;
+}
+.badge-dept   { background: var(--ink);    color: var(--gold); }
+.badge-senior { background: #edf7f2;       color: var(--success); }
+.badge-mid    { background: #fffbeb;       color: var(--warn); }
+.badge-junior { background: #fef2f2;       color: var(--danger); }
+.badge-off    { background: var(--cream2); color: var(--accent); }
+
+/* ── MODAL ── */
+.modal {
+  display: none; position: fixed; inset: 0;
+  background: rgba(26,26,46,0.55); z-index: 1000;
+  justify-content: center; align-items: center;
+  backdrop-filter: blur(4px);
+}
+.modal.active { display: flex; }
+.modal-content {
+  background: white; border-radius: 16px; padding: 0;
+  max-width: 560px; width: 90%; max-height: 85vh;
+  overflow-y: auto; box-shadow: var(--shadow-lg);
+  animation: slideUp 0.25s ease;
+}
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.modal-header {
+  background: var(--ink); color: var(--cream);
+  padding: 1.2rem 1.5rem; display: flex;
+  justify-content: space-between; align-items: center;
+  border-radius: 16px 16px 0 0;
+}
+.modal-header h2 { font-family: 'DM Serif Display', serif; font-size: 1.2rem; }
+.modal-body { padding: 1.5rem; }
+.close-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--cream); font-size: 1.4rem; opacity: 0.7;
+  line-height: 1; padding: 4px 8px; border-radius: 4px; transition: opacity 0.2s;
+}
+.close-btn:hover { opacity: 1; }
+
+/* ── LOADING ── */
+.loading {
+  display: none; position: fixed; inset: 0;
+  background: rgba(255,255,255,0.92); z-index: 3000;
+  justify-content: center; align-items: center;
+  flex-direction: column; gap: 1rem; backdrop-filter: blur(6px);
+}
+.loading.active { display: flex; }
+.spinner {
+  width: 44px; height: 44px;
+  border: 3px solid var(--sand); border-top: 3px solid var(--gold);
+  border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading p { font-weight: 600; color: var(--ink); opacity: 0.7; }
+
+/* ── REPORT TABLE ── */
+.report-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.report-table th {
+  background: var(--ink); color: var(--gold);
+  padding: 10px 14px; text-align: left; font-weight: 600;
+}
+.report-table td { padding: 9px 14px; border-bottom: 1px solid var(--sand); color: var(--ink); }
+.report-table tr:last-child td { border-bottom: none; }
+.report-table tr:hover td { background: var(--cream); }
+
+/* ── DIVIDER / TOOLBAR ── */
+.divider { height: 1px; background: var(--sand); margin: 1.5rem 0; }
+.toolbar {
+  display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+  margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--sand);
+}
+
+/* ── EMPLOYEE SECTION ── */
+.emp-stats-bar {
+  display: flex; align-items: center; gap: 1rem;
+  background: var(--ink); border-radius: var(--radius);
+  padding: 1rem 1.5rem; margin-bottom: 1.2rem; flex-wrap: wrap;
+}
+.emp-stat { display: flex; flex-direction: column; align-items: center; min-width: 48px; }
+.emp-stat span { font-family: 'DM Serif Display', serif; font-size: 1.5rem; color: var(--gold); line-height: 1; }
+.emp-stat small { font-size: 10px; color: var(--mist); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+.emp-filter-bar { display: flex; gap: 10px; margin-bottom: 1.2rem; flex-wrap: wrap; align-items: center; }
+.emp-search {
+  flex: 1; min-width: 180px; padding: 9px 14px;
+  border: 1.5px solid var(--sand); border-radius: 8px;
+  font-family: 'DM Sans', sans-serif; font-size: 13px;
+  background: white; color: var(--ink); outline: none; transition: border-color 0.2s;
+}
+.emp-search:focus { border-color: var(--gold); }
+.emp-filter-select {
+  padding: 9px 12px; border: 1.5px solid var(--sand); border-radius: 8px;
+  font-family: 'DM Sans', sans-serif; font-size: 13px;
+  background: white; color: var(--ink); outline: none; cursor: pointer;
+}
+.emp-filter-select:focus { border-color: var(--gold); }
+.emp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.emp-card {
+  background: white; border: 1.5px solid var(--sand); border-radius: 14px;
+  overflow: hidden; transition: all 0.22s; cursor: pointer; position: relative;
+}
+.emp-card:hover { border-color: var(--gold); box-shadow: 0 8px 32px rgba(201,168,76,0.13); transform: translateY(-2px); }
+.emp-card-top { height: 6px; width: 100%; }
+.emp-card-body { padding: 16px; display: flex; gap: 14px; align-items: flex-start; }
+.emp-card-avatar {
+  width: 52px; height: 52px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'DM Serif Display', serif; font-size: 20px;
+  color: white; flex-shrink: 0; overflow: hidden; position: relative;
+}
+.emp-card-avatar img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
+.emp-card-info { flex: 1; min-width: 0; }
+.emp-card-info h4 {
+  font-weight: 700; font-size: 14px; color: var(--ink); margin-bottom: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.emp-card-info .emp-role { font-size: 11px; color: #999; margin-bottom: 6px; }
+.emp-card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.emp-card-footer {
+  padding: 10px 16px; border-top: 1px solid var(--sand);
+  display: flex; justify-content: space-between; align-items: center;
+  background: var(--cream);
+}
+.emp-card-footer-info { font-size: 11px; color: #aaa; }
+.emp-card-actions { display: flex; gap: 6px; }
+.emp-card-restrictions { padding: 0 16px 12px; display: flex; flex-wrap: wrap; gap: 4px; }
+.restriction-tag {
+  background: #fef3c7; color: #92400e; border: 1px solid #fde68a;
+  border-radius: 6px; padding: 2px 8px; font-size: 10px; font-weight: 600;
+}
+.emp-empty { grid-column: 1/-1; text-align: center; padding: 3rem 1rem; color: #bbb; }
+.emp-empty p { font-size: 1rem; margin-top: 0.5rem; }
+
+/* ── EMPLOYEE MODAL ── */
+.emp-modal-content { max-width: 820px !important; width: 95% !important; padding: 0 !important; }
+.emp-modal-body { display: flex; gap: 0; min-height: 500px; }
+.emp-modal-left {
+  width: 160px; flex-shrink: 0; background: var(--ink);
+  padding: 24px 16px; display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+.emp-photo-wrap {
+  position: relative; cursor: pointer; border-radius: 14px;
+  overflow: hidden; width: 110px; height: 110px;
+}
+.emp-photo-preview {
+  width: 110px; height: 110px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'DM Serif Display', serif; font-size: 36px;
+  color: white; background: var(--ink2); position: relative; overflow: hidden;
+}
+.emp-photo-preview img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.emp-photo-overlay {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.6);
+  color: white; font-size: 11px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.2s; border-radius: 14px;
+}
+.emp-photo-wrap:hover .emp-photo-overlay { opacity: 1; }
+.emp-color-swatch { width: 100%; height: 4px; border-radius: 4px; margin-top: 8px; transition: background 0.3s; }
+.emp-modal-right { flex: 1; padding: 20px 24px; overflow-y: auto; max-height: 80vh; }
+.emp-form-section { margin-bottom: 1.4rem; padding-bottom: 1.2rem; border-bottom: 1px solid var(--sand); }
+.emp-form-section:last-of-type { border-bottom: none; }
+.emp-form-section h4 {
+  font-family: 'DM Serif Display', serif; font-size: 0.95rem;
+  color: var(--ink); margin-bottom: 1rem; display: flex; align-items: center; gap: 6px;
+}
+.emp-form-section h4::after { content: ''; flex: 1; height: 1px; background: var(--sand); margin-left: 8px; }
+.emp-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px; }
+@media(max-width:600px){ .emp-form-row { grid-template-columns: 1fr; } }
+.day-checkboxes { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.day-check { display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; }
+.day-check input { display: none; }
+.day-check span {
+  padding: 5px 9px; border-radius: 8px; font-size: 11px; font-weight: 700;
+  border: 1.5px solid var(--sand); background: white; color: #aaa;
+  transition: all 0.15s; user-select: none;
+}
+.day-check input:checked + span { background: var(--ink); color: var(--gold); border-color: var(--ink); }
+.restrictions-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; min-height: 28px; }
+.restriction-item {
+  background: #fef9ec; border: 1.5px solid #f8d96e; border-radius: 20px;
+  padding: 4px 10px 4px 12px; font-size: 12px; color: var(--ink);
+  display: flex; align-items: center; gap: 6px;
+}
+.restriction-item button {
+  background: none; border: none; cursor: pointer;
+  color: #aaa; font-size: 13px; line-height: 1; padding: 0 2px; transition: color 0.15s;
+}
+.restriction-item button:hover { color: var(--danger); }
+
+/* ── AUTH / PORTAL OVERLAYS ── */
+#auth-overlay, #portal-overlay, #expediente-overlay {
+  position: fixed; inset: 0; z-index: 10000;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--ink); overflow-y: auto;
+}
+#auth-overlay.hidden, #portal-overlay.hidden, #expediente-overlay.hidden { display: none; }
+#portal-overlay, #expediente-overlay { display: block; overflow-y: auto; align-items: unset; justify-content: unset; }
+.auth-card {
+  background: white; border-radius: 20px; width: 100%; max-width: 420px;
+  margin: 1rem; overflow: hidden; box-shadow: 0 32px 80px rgba(0,0,0,0.5);
+  animation: slideUp 0.3s ease;
+}
+.auth-header {
+  background: var(--ink); padding: 2.5rem 2rem 2rem;
+  text-align: center; border-bottom: 3px solid var(--gold);
+}
+.auth-header .hotel-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+.auth-header h1 { font-family: 'DM Serif Display', serif; color: var(--cream); font-size: 1.6rem; margin-bottom: 0.3rem; }
+.auth-header p  { color: var(--mist); font-size: 0.85rem; }
+.auth-body { padding: 2rem; }
+.auth-body .form-group { margin-bottom: 1.2rem; }
+.auth-body .form-group label {
+  display: block; font-weight: 700; font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--ink2); margin-bottom: 6px;
+}
+.auth-body .form-group input {
+  width: 100%; padding: 12px 16px; border: 2px solid var(--sand);
+  border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 15px;
+  color: var(--ink); background: var(--cream); transition: all 0.2s;
+}
+.auth-body .form-group input:focus {
+  border-color: var(--gold); outline: none; background: white;
+  box-shadow: 0 0 0 3px rgba(201,168,76,0.15);
+}
+.auth-error {
+  background: #fef2f2; color: #991b1b; border: 1px solid #fecaca;
+  border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 1rem; display: none;
+}
+.auth-error.show { display: block; }
+.btn-auth {
+  width: 100%; padding: 13px; background: var(--gold); color: var(--ink);
+  border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif;
+  font-weight: 700; font-size: 15px; cursor: pointer; transition: all 0.2s;
+  letter-spacing: 0.03em; margin-bottom: 10px; display: block;
+}
+.btn-auth:hover { background: var(--gold2); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(201,168,76,0.3); }
+.btn-auth.secondary { background: var(--ink2); color: var(--cream); }
+.btn-auth.secondary:hover { background: var(--ink); }
+.auth-links { text-align: center; margin-top: 1rem; font-size: 13px; color: #aaa; }
+.auth-links a { color: var(--accent); text-decoration: none; font-weight: 600; cursor: pointer; }
+.auth-links a:hover { color: var(--gold); }
+
+/* ── NAV USER PILL ── */
+.nav-user-pill {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px; padding: 4px 10px 4px 6px;
+}
+.nav-user-avatar {
+  width: 28px; height: 28px; background: var(--gold); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'DM Serif Display', serif; font-size: 12px;
+  color: var(--ink); font-weight: 700;
+}
+.nav-user-name { font-size: 12px; color: var(--cream); font-weight: 600; line-height: 1.2; }
+.nav-user-role { font-size: 10px; color: var(--mist); line-height: 1; }
+.btn-logout-sm {
+  background: none; border: 1px solid rgba(255,255,255,0.18); color: var(--mist);
+  padding: 3px 9px; border-radius: 5px; font-size: 11px; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; transition: all 0.2s;
+}
+.btn-logout-sm:hover { border-color: var(--danger); color: var(--danger); }
+
+/* ── USER TABLE ── */
+.user-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.user-table th { background: var(--ink); color: var(--gold); padding: 10px 14px; text-align: left; font-weight: 600; }
+.user-table td { padding: 10px 14px; border-bottom: 1px solid var(--sand); color: var(--ink); vertical-align: middle; }
+.user-table tr:last-child td { border-bottom: none; }
+.user-table tr:hover td { background: var(--cream); }
+.role-badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+.role-admin  { background: var(--ink); color: var(--gold); }
+.role-editor { background: #eff6ff; color: #1d4ed8; }
+
+/* ── PORTAL ── */
+.portal-wrap { width: 100%; min-height: 100vh; background: var(--cream); display: flex; flex-direction: column; }
+.portal-nav {
+  background: var(--ink); padding: 0 1.5rem; min-height: 60px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 3px solid var(--gold); flex-shrink: 0; gap: 1rem;
+  flex-wrap: wrap;
+}
+.portal-nav-brand {
+  display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+}
+.portal-nav-brand h1 { font-family: 'DM Serif Display', serif; color: var(--cream); font-size: 1.1rem; }
+.portal-nav-brand h1 span { color: var(--gold); }
+.portal-nav-sub {
+  color: var(--mist); font-size: 11px; font-weight: 400;
+  white-space: nowrap;
+}
+.portal-nav-actions {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.portal-content { flex: 1; padding: 1.5rem; max-width: 1400px; margin: 0 auto; width: 100%; }
+.portal-header-card {
+  background: var(--ink); border-radius: var(--radius); padding: 1.2rem 1.5rem;
+  margin-bottom: 1.2rem; display: flex; align-items: center;
+  justify-content: space-between; flex-wrap: wrap; gap: 1rem;
+}
+.portal-header-card h2 { font-family: 'DM Serif Display', serif; color: var(--cream); font-size: 1.2rem; margin-bottom: 3px; }
+.portal-header-card p  { color: var(--mist); font-size: 12px; }
+.portal-week-badge { background: var(--gold); color: var(--ink); padding: 5px 14px; border-radius: 20px; font-weight: 700; font-size: 13px; white-space: nowrap; }
+.no-schedule-card { background: white; border: 2px dashed var(--sand); border-radius: 16px; padding: 4rem 2rem; text-align: center; }
+.no-schedule-card .ns-icon { font-size: 3rem; margin-bottom: 1rem; }
+.no-schedule-card h3 { font-family: 'DM Serif Display', serif; color: var(--ink); font-size: 1.4rem; margin-bottom: 0.5rem; }
+.no-schedule-card p  { font-size: 14px; color: #aaa; max-width: 400px; margin: 0 auto; line-height: 1.6; }
+.portal-table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--sand); }
+.portal-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 800px; }
+.portal-table th {
+  background: var(--ink); color: var(--cream); padding: 10px 8px;
+  text-align: center; font-size: 12px; font-weight: 600;
+  border: 1px solid rgba(255,255,255,0.07); position: sticky; top: 0;
+}
+.portal-table th small { color: var(--gold); display: block; margin-top: 1px; font-weight: 400; }
+.portal-table td {
+  border: 1px solid #eeecdf; padding: 9px 8px; text-align: center;
+  font-size: 12px; color: var(--ink); background: white;
+}
+.portal-table .p-label {
+  background: var(--cream2); font-weight: 700; text-align: left; padding-left: 14px;
+  font-size: 11px; color: var(--ink2); position: sticky; left: 0;
+  border-right: 2px solid var(--sand); min-width: 130px;
+}
+.portal-table .p-section {
+  background: var(--ink2); color: var(--gold);
+  font-family: 'DM Serif Display', serif; font-size: 11px;
+  letter-spacing: 0.08em; text-align: left; padding-left: 14px; text-transform: uppercase;
+}
+.portal-table tr:hover td { background: #fafaf5; }
+.portal-table tr:hover .p-label { background: var(--cream2); }
+.portal-empty-cell { color: #ccc; }
+
+/* ── HISTORIAL ── */
+.hist-card {
+  background: white; border: 1.5px solid var(--sand); border-radius: 12px;
+  padding: 1rem 1.2rem; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+  transition: border-color 0.2s;
+}
+.hist-date {
+  background: var(--ink); color: var(--gold);
+  border-radius: 10px; padding: 10px 14px; text-align: center;
+  font-family: 'DM Serif Display', serif; font-size: 1.6rem;
+  line-height: 1; min-width: 60px; flex-shrink: 0;
+}
+.hist-date small { display: block; font-family: 'DM Sans', sans-serif; font-size: 10px; color: var(--mist); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+.hist-info { flex: 1; min-width: 160px; }
+.hist-info strong { font-size: 14px; color: var(--ink); display: block; margin-bottom: 2px; }
+.hist-sub { font-size: 11px; color: #aaa; display: block; margin-bottom: 6px; }
+.hist-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.hist-tag {
+  padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;
+}
+.hist-tag.green  { background: #f0fdf4; color: #166534; }
+.hist-tag.blue   { background: #eff6ff; color: #1d4ed8; }
+.hist-tag.gray   { background: var(--cream2); color: #666; }
+.hist-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+/* ── PRINT / RESPONSIVE ── */
+@media print {
+  .navbar,.toolbar,.no-print { display: none !important; }
+  .card { box-shadow: none; border: 1px solid #ddd; }
+  body { background: white; }
+}
+@media (max-width: 768px) {
+  .container { padding: 1rem; }
+  .brand h1 { font-size: 1rem; }
+  .nav-btns .btn span { display: none; }
+  .modal-content { width: 95%; max-height: 90vh; }
+  .emp-modal-content { width: 98% !important; }
+  .emp-modal-body { flex-direction: column; }
+  .emp-modal-left { width: 100%; flex-direction: row; padding: 16px; gap: 16px; }
+  .form-grid { grid-template-columns: 1fr; }
+  .hist-card { flex-wrap: wrap; }
+  .hist-actions { width: 100%; justify-content: flex-end; }
+  .portal-nav { padding: 0.6rem 1rem; }
+  .portal-nav-sub { display: none; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ AUTH OVERLAY ══════════════ -->
+<div id="auth-overlay">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="hotel-icon">🏨</div>
+      <h1>Hotel Horarios</h1>
+      <p>Sistema de Gestión de Turnos</p>
+    </div>
+    <div class="auth-body">
+      <div id="auth-landing">
+        <button class="btn-auth" onclick="showLoginForm()">🔐 Iniciar Sesión — Administración / Staff</button>
+        <button class="btn-auth secondary" onclick="openPortalDirect()">👁️ Ver Horario Semanal — Colaboradores</button>
+        <button class="btn-auth secondary" onclick="openExpedienteFromAuth()">🗂️ Mi Expediente — Solicitudes y Permisos</button>
+        <p class="auth-links" style="margin-top:1.2rem">¿Primera vez? <a onclick="showLoginForm()">Ingresá con tus credenciales</a></p>
+      </div>
+      <div id="auth-form" style="display:none">
+        <div class="auth-error" id="auth-error">Usuario o contraseña incorrectos.</div>
+        <div class="form-group">
+          <label>Usuario</label>
+          <input type="text" id="auth-username" placeholder="Tu usuario" autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label>Contraseña</label>
+          <input type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password"
+            onkeydown="if(event.key==='Enter') doLogin()">
+        </div>
+        <button class="btn-auth" onclick="doLogin()">Ingresar</button>
+        <p class="auth-links"><a onclick="showAuthLanding()">← Volver</a></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ PORTAL OVERLAY ══════════════ -->
+<div id="portal-overlay" class="hidden">
+  <div class="portal-wrap">
+    <nav class="portal-nav">
+      <div class="portal-nav-brand">
+        <span style="font-size:1.3rem">🏨</span>
+        <h1>Hotel <span>Horarios</span></h1>
+        <span class="portal-nav-sub">Portal Colaboradores</span>
+      </div>
+      <div class="portal-nav-actions">
+        <button class="btn btn-ghost btn-sm" onclick="showPortalSection('schedule')" id="portalBtnSchedule">📋 Horario</button>
+        <button class="btn btn-ghost btn-sm" onclick="openExpediente()" id="portalBtnExpediente">🗂️ Mi Expediente</button>
+        <button class="btn-logout-sm" onclick="closePortal()" id="portalBackBtn">← Volver</button>
+      </div>
+    </nav>
+    <div class="portal-content">
+      <div id="portalSectionSchedule">
+        <div class="portal-header-card">
+          <div>
+            <h2>Horario Semanal</h2>
+            <p id="portal-week-label">Cargando…</p>
+          </div>
+          <div class="portal-week-badge" id="portal-week-badge">—</div>
+        </div>
+        <div id="portal-schedule-wrap"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ EXPEDIENTE OVERLAY ══════════════ -->
+<div id="expediente-overlay" class="hidden">
+  <div class="portal-wrap">
+    <nav class="portal-nav">
+      <div class="portal-nav-brand">
+        <span style="font-size:1.3rem">🗂️</span>
+        <h1>Mi <span>Expediente</span></h1>
+        <span class="portal-nav-sub">Área Personal del Colaborador</span>
+      </div>
+      <div class="portal-nav-actions">
+        <button class="btn-logout-sm" id="expBackBtn" onclick="closeExpediente()">← Volver al Portal</button>
+      </div>
+    </nav>
+    <div class="portal-content">
+      <!-- Login del colaborador -->
+      <div id="expLogin">
+        <div style="max-width:420px;margin:3rem auto">
+          <div class="card">
+            <div class="card-header"><span class="icon">🔐</span> Acceso a tu Expediente</div>
+            <div class="card-body">
+              <p style="font-size:13px;color:#888;margin-bottom:1.2rem">Ingresá con tu usuario y contraseña asignados por administración.</p>
+              <div class="auth-error" id="exp-auth-error" style="display:none;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:1rem">
+                Usuario o contraseña incorrectos.
+              </div>
+              <div class="form-group" style="margin-bottom:1rem">
+                <label>Usuario</label>
+                <input type="text" id="exp-username" placeholder="Tu usuario" autocomplete="username"
+                  style="width:100%;padding:10px 14px;border:1.5px solid var(--sand);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;background:var(--cream);outline:none"
+                  onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--sand)'">
+              </div>
+              <div class="form-group" style="margin-bottom:1.5rem">
+                <label>Contraseña</label>
+                <input type="password" id="exp-password" placeholder="••••••••" autocomplete="current-password"
+                  style="width:100%;padding:10px 14px;border:1.5px solid var(--sand);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;background:var(--cream);outline:none"
+                  onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--sand)'"
+                  onkeydown="if(event.key==='Enter') doExpLogin()">
+              </div>
+              <button class="btn btn-gold" style="width:100%" onclick="doExpLogin()">Ingresar a mi Expediente</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Área personal logueada -->
+      <div id="expDashboard" style="display:none">
+        <div class="portal-header-card" style="margin-bottom:1.2rem">
+          <div>
+            <h2 id="expDashTitle">Mi Expediente</h2>
+            <p id="expDashSub">Gestión personal de solicitudes y permisos</p>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="doExpLogout()">Cerrar sesión de expediente</button>
+        </div>
+        <!-- Nueva solicitud -->
+        <div class="card" style="margin-bottom:1.2rem">
+          <div class="card-header"><span class="icon">📋</span> Nueva Solicitud</div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Tipo de solicitud</label>
+                <select id="expReqType" onchange="updateExpReqFields()">
+                  <option value="psg">PSG — Permiso Sin Goce Salarial</option>
+                  <option value="vacation">Solicitud de Vacaciones</option>
+                  <option value="incapacity">Aviso de Incapacidad</option>
+                  <option value="absence">Ausencia Justificada</option>
+                  <option value="daychange">Cambio de Día Libre</option>
+                  <option value="other">Otro / Consulta</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Fecha inicio</label>
+                <input type="date" id="expReqDateFrom">
+              </div>
+              <div class="form-group">
+                <label>Fecha fin</label>
+                <input type="date" id="expReqDateTo">
+              </div>
+            </div>
+            <div class="form-group" style="margin-bottom:1rem">
+              <label>Descripción / Motivo</label>
+              <textarea id="expReqNotes" rows="3" style="padding:10px 14px;border:1.5px solid var(--sand);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;resize:vertical;width:100%;outline:none;background:var(--cream)" placeholder="Explicá brevemente el motivo…" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--sand)'"></textarea>
+            </div>
+            <div id="expIncapAlert" style="display:none">
+              <div class="alert alert-warn" style="margin-bottom:1rem">⚠️ Para incapacidades, presentá la boleta del CCSS a tu supervisor o enviá foto por los medios acordados.</div>
+            </div>
+            <button class="btn btn-success" onclick="submitExpRequest()">📨 Enviar Solicitud</button>
+          </div>
+        </div>
+        <!-- Historial de solicitudes -->
+        <div class="card">
+          <div class="card-header"><span class="icon">📂</span> Historial de mis Solicitudes</div>
+          <div class="card-body" style="padding:1rem">
+            <div id="expRequestsList">
+              <div class="emp-empty"><p style="font-size:2rem">📂</p><p>No tenés solicitudes registradas aún.</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ MAIN APP ══════════════ -->
+<nav class="navbar">
+  <div class="navbar-inner">
+    <div class="brand">
+      <button class="hamburger" onclick="openSidebar()" aria-label="Menú" title="Menú de navegación">
+        <span class="ham-line"></span>
+        <span class="ham-line"></span>
+        <span class="ham-line"></span>
+      </button>
+      <div class="brand-icon">🏨</div>
+      <h1>Hotel <span>Horarios</span></h1>
+    </div>
+    <div class="nav-btns">
+      <button class="btn btn-ghost" onclick="openPortalLoggedIn()">👁️ <span>Portal</span></button>
+      <button class="btn btn-gold"  onclick="exportToExcel()">📄 <span>PDF</span></button>
+      <div id="nav-user-pill" style="display:none" class="nav-user-pill">
+        <div class="nav-user-avatar" id="nav-avatar">?</div>
+        <div>
+          <div class="nav-user-name" id="nav-uname">—</div>
+          <div class="nav-user-role" id="nav-urole">—</div>
+        </div>
+        <button class="btn-logout-sm" onclick="doLogout()" style="margin-left:4px">Salir</button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ══════════════ SIDEBAR ══════════════ -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">🏨</div>
+      <h2>Hotel <span>Horarios</span></h2>
+    </div>
+    <button class="sidebar-close" onclick="closeSidebar()">✕</button>
+  </div>
+  <nav class="sidebar-nav">
+    <button class="sidebar-item active" data-tab="generator"  onclick="switchTab('generator');closeSidebar()">
+      <span class="sidebar-item-icon">📅</span><span class="sidebar-item-label">Generador</span>
+    </button>
+    <button class="sidebar-item" data-tab="employees"  onclick="switchTab('employees');closeSidebar()">
+      <span class="sidebar-item-icon">👥</span><span class="sidebar-item-label">Personal</span>
+    </button>
+    <button class="sidebar-item" data-tab="metrics"    onclick="switchTab('metrics');closeSidebar()">
+      <span class="sidebar-item-icon">📈</span><span class="sidebar-item-label">Métricas</span>
+    </button>
+    <button class="sidebar-item" data-tab="reports"    onclick="switchTab('reports');closeSidebar()">
+      <span class="sidebar-item-icon">📊</span><span class="sidebar-item-label">Reportes</span>
+    </button>
+    <div class="sidebar-divider"></div>
+    <button class="sidebar-item" data-tab="history"    onclick="switchTab('history');closeSidebar()">
+      <span class="sidebar-item-icon">🗂️</span><span class="sidebar-item-label">Historial</span>
+    </button>
+    <button class="sidebar-item" data-tab="requests"   onclick="switchTab('requests');closeSidebar()" id="sidebar-req-btn">
+      <span class="sidebar-item-icon">📨</span><span class="sidebar-item-label">Solicitudes</span>
+    </button>
+    <button class="sidebar-item" data-tab="users" id="sidebar-users-btn" onclick="switchTab('users');closeSidebar()" style="display:none">
+      <span class="sidebar-item-icon">👤</span><span class="sidebar-item-label">Usuarios</span>
+    </button>
+    <div class="sidebar-divider"></div>
+    <button class="sidebar-item" onclick="openPortalLoggedIn();closeSidebar()">
+      <span class="sidebar-item-icon">👁️</span><span class="sidebar-item-label">Ver Portal</span>
+    </button>
+    <button class="sidebar-item" onclick="exportToExcel();closeSidebar()">
+      <span class="sidebar-item-icon">📄</span><span class="sidebar-item-label">Exportar PDF</span>
+    </button>
+  </nav>
+  <div class="sidebar-footer" id="sidebar-footer-user">
+    Sesión no iniciada
+  </div>
+</aside>
+
+<div class="container">
+
+  <!-- ═══ TAB: GENERADOR ═══ -->
+  <div id="tab-generator" class="tab-content active">
+    <div class="card">
+      <div class="card-header"><span class="icon">📅</span> Configuración de la Semana</div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Fecha de inicio (Lunes)</label>
+            <input type="date" id="startDate" onchange="updateWeekDates()">
+          </div>
+          <div class="form-group">
+            <label>Número / Etiqueta de semana</label>
+            <input type="text" id="weekNumber" placeholder="Ej: Semana 13 — 2026">
+          </div>
+          <div class="form-group">
+            <label>Nivel de ocupación general</label>
+            <select id="generalOccupancy">
+              <option value="low">Baja (0–5 pax)</option>
+              <option value="medium" selected>Media (6–10 pax)</option>
+              <option value="high">Alta (11+ pax)</option>
+            </select>
+          </div>
+        </div>
+        <div class="alert alert-info">
+          💡 <strong>Navegación rápida:</strong> Presione <kbd style="background:#e0e7ff;border-radius:4px;padding:1px 6px;font-family:monospace">Enter</kbd> en los campos de métricas para avanzar verticalmente por día. Check-in/Check-out acepta números separados por coma (<code>3,5,8</code>) y los formatea automáticamente.
+        </div>
+        <h3 style="margin:1.5rem 0 1rem;font-family:'DM Serif Display',serif;font-size:1rem;color:var(--ink)">📊 Métricas Diarias</h3>
+        <div class="metrics-table-wrap" id="metricsContainer"></div>
+        <div class="toolbar no-print">
+          <button class="btn btn-success" onclick="generateSchedule()">🤖 Generar Horario Automático</button>
+          <button class="btn btn-warn"    onclick="importFromExcel()">📂 Importar desde Excel</button>
+          <button class="btn btn-accent"  onclick="validateSchedule()">✅ Validar Reglas</button>
+          <button class="btn btn-primary" onclick="saveToHistory()">💾 Guardar en Historial</button>
+          <button class="btn btn-outline" onclick="clearSchedule()">🗑️ Limpiar</button>
+          <div style="display:flex;align-items:center;gap:10px;margin-left:auto;background:var(--cream);border:1.5px solid var(--sand);border-radius:8px;padding:6px 14px">
+            <span style="font-size:12px;font-weight:600;color:#888">Cubre Maikel:</span>
+            <button id="coverToggleBtn" class="btn btn-primary btn-sm" onclick="toggleCoverIndex()" style="min-width:150px">
+              🔄 Pablo esta semana
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="icon">📋</span> Horario Semanal</div>
+      <div class="card-body" style="padding:1rem">
+        <div class="spreadsheet-wrapper">
+          <table class="spreadsheet" id="scheduleTable">
+            <thead>
+              <tr id="headerRow">
+                <th style="text-align:left;padding-left:14px">Categoría / Día</th>
+              </tr>
+            </thead>
+            <tbody id="scheduleBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB: PERSONAL ═══ -->
+  <div id="tab-employees" class="tab-content">
+    <div class="emp-stats-bar">
+      <div class="emp-stat"><span id="empStatTotal">0</span><small>Total</small></div>
+      <div class="emp-stat"><span id="empStatFront">0</span><small>Front</small></div>
+      <div class="emp-stat"><span id="empStatKitchen">0</span><small>Cocina</small></div>
+      <div class="emp-stat"><span id="empStatHK">0</span><small>Mucamas</small></div>
+      <div class="emp-stat"><span id="empStatMaint">0</span><small>Mant.</small></div>
+      <div class="emp-stat"><span id="empStatSec">0</span><small>Auditor</small></div>
+      <div class="emp-stat"><span id="empStatMgmt">0</span><small>Gerencia</small></div>
+      <button class="btn btn-success" onclick="openEmpModal(null)" style="margin-left:auto">➕ Nuevo Colaborador</button>
+    </div>
+    <div class="emp-filter-bar">
+      <input type="text" id="empSearch" placeholder="🔍  Buscar por nombre…" oninput="renderEmployees()" class="emp-search">
+      <select id="empFilterDept" onchange="renderEmployees()" class="emp-filter-select">
+        <option value="">Todos los departamentos</option>
+        <option value="management">Gerencia</option>
+        <option value="front">Front Office</option>
+        <option value="kitchen">Cocina</option>
+        <option value="housekeeping">Mucama</option>
+        <option value="maintenance">Mantenimiento</option>
+        <option value="security">Auditor / Seg.</option>
+      </select>
+      <select id="empFilterLevel" onchange="renderEmployees()" class="emp-filter-select">
+        <option value="">Todos los niveles</option>
+        <option value="senior">Senior</option>
+        <option value="mid">Mid</option>
+        <option value="junior">Junior</option>
+      </select>
+    </div>
+    <div class="emp-grid" id="employeeList"></div>
+  </div>
+
+  <!-- ═══ TAB: MÉTRICAS ═══ -->
+  <div id="tab-metrics" class="tab-content">
+    <div class="card">
+      <div class="card-header"><span class="icon">📈</span> Análisis de Ocupación</div>
+      <div class="card-body">
+        <div class="stats-grid">
+          <div class="stat-card"><h3 id="totalBreakfasts">0</h3><p>Total Desayunos (semana)</p></div>
+          <div class="stat-card"><h3 id="totalDinners">0</h3><p>Total Cenas (semana)</p></div>
+          <div class="stat-card"><h3 id="avgOccupancy">0</h3><p>Promedio diario</p></div>
+          <div class="stat-card"><h3 id="peakDay">—</h3><p>Día de mayor carga</p></div>
+        </div>
+        <canvas id="occupancyChart" style="max-height:380px"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB: REPORTES ═══ -->
+  <div id="tab-reports" class="tab-content">
+    <div class="card">
+      <div class="card-header"><span class="icon">📊</span> Reportes y Estadísticas</div>
+      <div class="card-body">
+        <div class="form-grid" style="max-width:360px">
+          <div class="form-group">
+            <label>Tipo de reporte</label>
+            <select id="reportType">
+              <option value="hours">Horas trabajadas por empleado</option>
+              <option value="coverage">Cobertura por turno y día</option>
+              <option value="conflicts">Conflictos detectados</option>
+              <option value="daysoff">Días libres asignados</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="generateReport()">🔍 Generar Reporte</button>
+        <div id="reportContent" style="margin-top:1.5rem"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB: HISTORIAL ═══ -->
+  <div id="tab-history" class="tab-content">
+    <div class="card">
+      <div class="card-header"><span class="icon">🗂️</span> Historial de Horarios</div>
+      <div class="card-body">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid var(--sand)">
+          <button class="btn btn-success" onclick="saveToHistory()">💾 Guardar horario actual</button>
+          <label class="btn btn-accent" style="cursor:pointer">
+            📂 Importar JSON
+            <input type="file" id="importJsonInput" accept=".json" style="display:none" onchange="importScheduleJSON(event)">
+          </label>
+          <button class="btn btn-warn" onclick="openExcelConverter()">📊 Convertir Excel histórico</button>
+          <span style="font-size:12px;color:#aaa;margin-left:4px">Convertí libros Excel con horarios existentes al historial</span>
+        </div>
+        <div id="historyList">
+          <div class="emp-empty"><p style="font-size:2rem">🗂️</p><p>Aún no hay horarios guardados.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB: USUARIOS ═══ -->
+  <div id="tab-users" class="tab-content">
+    <div class="card">
+      <div class="card-header"><span class="icon">👤</span> Gestión de Usuarios del Sistema</div>
+      <div class="card-body">
+        <div class="alert alert-info" style="margin-bottom:1.5rem">
+          🔐 Solo el <strong>administrador</strong> puede crear y eliminar usuarios.
+          Los <strong>Editores</strong> pueden ingresar y modificar horarios pero no acceden a esta sección.
+        </div>
+        <div style="background:var(--cream);border:1.5px solid var(--sand);border-radius:12px;padding:1.5rem;margin-bottom:2rem">
+          <h3 style="font-family:'DM Serif Display',serif;font-size:1rem;margin-bottom:1rem;color:var(--ink)">➕ Agregar Nuevo Usuario</h3>
+          <div class="form-grid" style="max-width:700px">
+            <div class="form-group"><label>Nombre completo</label><input type="text" id="nu-name" placeholder="Nombre del usuario"></div>
+            <div class="form-group"><label>Usuario (login)</label><input type="text" id="nu-username" placeholder="sin espacios, ej: juan123"></div>
+            <div class="form-group"><label>Contraseña</label><input type="password" id="nu-password" placeholder="mínimo 6 caracteres"></div>
+            <div class="form-group"><label>Rol</label>
+              <select id="nu-role">
+                <option value="editor">Editor — puede crear y editar horarios</option>
+                <option value="admin">Admin — acceso completo</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn-success" onclick="addUser()">➕ Crear Usuario</button>
+        </div>
+        <h3 style="font-family:'DM Serif Display',serif;font-size:1rem;margin-bottom:1rem;color:var(--ink)">Usuarios registrados</h3>
+        <div style="overflow-x:auto;border-radius:10px;border:1px solid var(--sand)">
+          <table class="user-table">
+            <thead><tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Creado</th><th>Acciones</th></tr></thead>
+            <tbody id="userTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB: SOLICITUDES ═══ -->
+  <div id="tab-requests" class="tab-content">
+    <div class="card">
+      <div class="card-header"><span class="icon">📨</span> Solicitudes del Personal</div>
+      <div class="card-body">
+        <div class="alert alert-info" style="margin-bottom:1.5rem">
+          📋 Solicitudes enviadas por el personal desde su <strong>Expediente Personal</strong>. El personal accede con su usuario y contraseña asignados en la ficha del colaborador. Desde ahí pueden ver el estado de sus solicitudes de forma privada.
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:1.2rem">
+          <select id="reqFilterStatus" onchange="renderRequests()" class="emp-filter-select">
+            <option value="">Todos los estados</option>
+            <option value="pending">⏳ Pendiente</option>
+            <option value="approved">✅ Aprobado</option>
+            <option value="rejected">❌ Rechazado</option>
+          </select>
+          <select id="reqFilterType" onchange="renderRequests()" class="emp-filter-select">
+            <option value="">Todos los tipos</option>
+            <option value="psg">PSG</option>
+            <option value="vacation">Vacaciones</option>
+            <option value="incapacity">Incapacidad</option>
+            <option value="absence">Ausencia</option>
+            <option value="daychange">Cambio día libre</option>
+            <option value="other">Otro</option>
+          </select>
+          <button class="btn btn-danger btn-sm" onclick="clearAllRequests()" style="margin-left:auto">🗑️ Limpiar resueltos</button>
+        </div>
+        <div id="requestsList">
+          <div class="emp-empty"><p style="font-size:2rem">📨</p><p>No hay solicitudes registradas aún.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<!-- ══════════════ EMPLOYEE MODAL ══════════════ -->
+<div class="modal" id="empModal">
+  <div class="modal-content emp-modal-content">
+    <div class="modal-header">
+      <h2 id="empModalTitle">Nuevo Colaborador</h2>
+      <button class="close-btn" onclick="closeModal('empModal')">✕</button>
+    </div>
+    <div class="emp-modal-body">
+      <div class="emp-modal-left">
+        <div class="emp-photo-wrap" onclick="document.getElementById('photoInput').click()">
+          <div class="emp-photo-preview" id="empPhotoPreview">
+            <span id="empPhotoInitials">?</span>
+            <img id="empPhotoImg" src="" alt="" style="display:none">
+          </div>
+          <div class="emp-photo-overlay">📷 Cambiar foto</div>
+        </div>
+        <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="handlePhotoUpload(event)">
+        <p style="font-size:11px;color:#aaa;text-align:center;margin-top:6px">Click para subir foto</p>
+        <div class="emp-color-swatch" id="empColorSwatch"></div>
+      </div>
+      <div class="emp-modal-right">
+        <div class="emp-form-section">
+          <h4>Información básica</h4>
+          <div class="emp-form-row">
+            <div class="form-group"><label>Nombre completo *</label><input type="text" id="mEmpName" placeholder="Nombre del colaborador"></div>
+            <div class="form-group"><label>Puesto / Rol</label><input type="text" id="mEmpRole" placeholder="Ej: Recepcionista, Chef…"></div>
+          </div>
+          <div class="emp-form-row">
+            <div class="form-group">
+              <label>Departamento</label>
+              <select id="mEmpDept" onchange="updateModalColor()">
+                <option value="front">Front Office</option>
+                <option value="kitchen">Cocina</option>
+                <option value="housekeeping">Mucama / Housekeeping</option>
+                <option value="maintenance">Mantenimiento</option>
+                <option value="management">Gerencia</option>
+                <option value="security">Auditor / Seguridad</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Nivel de experiencia</label>
+              <select id="mEmpLevel">
+                <option value="senior">Senior — Alta</option>
+                <option value="mid">Mid — Media</option>
+                <option value="junior">Junior — Baja</option>
+              </select>
+            </div>
+          </div>
+          <div class="emp-form-row">
+            <div class="form-group"><label>Teléfono</label><input type="text" id="mEmpPhone" placeholder="+506 0000-0000"></div>
+            <div class="form-group"><label>Fecha de ingreso</label><input type="date" id="mEmpStartDate"></div>
+          </div>
+        </div>
+        <div class="emp-form-section">
+          <h4>Horario y turnos</h4>
+          <div class="emp-form-row">
+            <div class="form-group">
+              <label>Turno preferido</label>
+              <select id="mEmpShift">
+                <option value="">Sin preferencia</option>
+                <option value="morning">Mañana (6am–2pm)</option>
+                <option value="evening">Tarde (2pm–10pm)</option>
+                <option value="night">Noche (10pm–6am)</option>
+                <option value="morning_fixed">Mañana FIJO</option>
+                <option value="evening_fixed">Tarde FIJO</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Día libre fijo</label>
+              <select id="mEmpFixedDay">
+                <option value="">Rotativo (sin fijo)</option>
+                <option value="0">Lunes</option>
+                <option value="1">Martes</option>
+                <option value="2">Miércoles</option>
+                <option value="3">Jueves</option>
+                <option value="4">Viernes</option>
+                <option value="5">Sábado</option>
+                <option value="6">Domingo</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Días disponibles para trabajar</label>
+            <div class="day-checkboxes" id="mEmpAvailDays">
+              <label class="day-check"><input type="checkbox" value="0" checked><span>Lun</span></label>
+              <label class="day-check"><input type="checkbox" value="1" checked><span>Mar</span></label>
+              <label class="day-check"><input type="checkbox" value="2" checked><span>Mié</span></label>
+              <label class="day-check"><input type="checkbox" value="3" checked><span>Jue</span></label>
+              <label class="day-check"><input type="checkbox" value="4" checked><span>Vie</span></label>
+              <label class="day-check"><input type="checkbox" value="5" checked><span>Sáb</span></label>
+              <label class="day-check"><input type="checkbox" value="6" checked><span>Dom</span></label>
+            </div>
+          </div>
+        </div>
+        <div class="emp-form-section">
+          <h4>Restricciones especiales</h4>
+          <div class="restrictions-list" id="mEmpRestrictions"></div>
+          <div class="emp-form-row" style="align-items:flex-end">
+            <div class="form-group" style="flex:1">
+              <label>Agregar restricción</label>
+              <input type="text" id="mRestrictionInput" placeholder="Ej: No trabaja con X…" onkeydown="if(event.key==='Enter')addRestriction()">
+            </div>
+            <button class="btn btn-accent btn-sm" onclick="addRestriction()" style="margin-bottom:2px">+ Agregar</button>
+          </div>
+        </div>
+        <div class="emp-form-section">
+          <h4>🔐 Acceso al Portal Personal</h4>
+          <p style="font-size:12px;color:#aaa;margin-bottom:1rem">Asigná credenciales para que el colaborador pueda acceder a su expediente y gestionar sus solicitudes.</p>
+          <div class="emp-form-row">
+            <div class="form-group"><label>Usuario portal</label><input type="text" id="mEmpPortalUser" placeholder="ej: jose.front" autocomplete="off"></div>
+            <div class="form-group"><label>Contraseña portal</label><input type="password" id="mEmpPortalPass" placeholder="mín. 6 caracteres" autocomplete="off"></div>
+          </div>
+        </div>
+        <div class="emp-form-section">
+          <h4>Notas y comentarios</h4>
+          <textarea id="mEmpNotes" rows="3" placeholder="Observaciones, acuerdos especiales, historial…"
+            style="width:100%;padding:10px;border:1.5px solid var(--sand);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;resize:vertical;background:var(--cream);color:var(--ink);outline:none"
+            onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--sand)'"></textarea>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--sand)">
+          <button class="btn btn-outline" onclick="closeModal('empModal')">Cancelar</button>
+          <button class="btn btn-danger btn-sm" id="empDeleteBtn" onclick="deleteCurrentEmployee()" style="display:none">🗑️ Eliminar</button>
+          <button class="btn btn-gold" onclick="saveEmployee()">💾 Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ VALIDATION MODAL ══════════════ -->
+<div class="modal" id="validationModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>✅ Validación de Reglas</h2>
+      <button class="close-btn" onclick="closeModal('validationModal')">✕</button>
+    </div>
+    <div class="modal-body" id="validationContent"></div>
+  </div>
+</div>
+
+<!-- ══════════════ EXCEL CONVERTER MODAL ══════════════ -->
+<div class="modal" id="excelConverterModal" style="align-items:flex-start;padding-top:2rem;overflow-y:auto">
+  <div class="modal-content" style="max-width:820px;width:95%;max-height:88vh;margin:0 auto">
+    <div class="modal-header">
+      <h2>📊 Convertir Excel Histórico al Historial</h2>
+      <button class="close-btn" onclick="closeModal('excelConverterModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="excConvStep1">
+        <div class="alert alert-info" style="margin-bottom:1.2rem">
+          📋 Subí un libro Excel (<code>.xlsx</code> / <code>.xls</code>) o CSV con horarios existentes. La app analiza cada hoja, detecta el formato automáticamente y te muestra una vista previa antes de guardar en el historial.
+          <br><br>
+          <strong>Detecta automáticamente:</strong> nombres de días (en encabezados), etiquetas de fila (Gerencia, Front, Cocina, Mucamas, Auditor, etc.), fechas y etiquetas de semana. Tolera variaciones de ortografía y formatos distintos.
+        </div>
+        <div style="border:2px dashed var(--sand);border-radius:12px;padding:3rem 2rem;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--cream)"
+             id="excDropZone"
+             onclick="document.getElementById('excFileInput').click()"
+             ondragover="event.preventDefault();this.style.borderColor='var(--gold)';this.style.background='#fffdf4'"
+             ondragleave="this.style.borderColor='var(--sand)';this.style.background='var(--cream)'"
+             ondrop="event.preventDefault();this.style.borderColor='var(--sand)';this.style.background='var(--cream)';_handleExcelConverterDrop(event)">
+          <div style="font-size:3rem;margin-bottom:0.6rem">📊</div>
+          <p style="font-weight:700;color:var(--ink);font-size:15px;margin-bottom:0.4rem">Arrastrá el archivo aquí o hacé click para seleccionar</p>
+          <p style="font-size:12px;color:#aaa">Soporta: .xlsx · .xls · .csv — libros con múltiples hojas</p>
+          <input type="file" id="excFileInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="_handleExcelConverterFile(event)">
+        </div>
+      </div>
+      <div id="excConvStep2" style="display:none">
+        <div id="excConvAnalyzing" style="text-align:center;padding:3rem">
+          <div class="spinner" style="margin:0 auto 1rem"></div>
+          <p style="font-weight:600;color:var(--ink2)">Analizando libro…</p>
+        </div>
+        <div id="excConvResults" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:1.2rem;padding-bottom:1rem;border-bottom:1px solid var(--sand)">
+            <div>
+              <strong id="excConvSummary" style="font-size:14px"></strong>
+              <span style="font-size:12px;color:#aaa;margin-left:8px" id="excConvFilename"></span>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-success btn-sm" onclick="_importAllExcelSheets()">✅ Importar seleccionadas</button>
+              <button class="btn btn-outline btn-sm" onclick="_resetExcelConverter()">← Otro archivo</button>
+            </div>
+          </div>
+          <div id="excSheetList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ LOADING OVERLAY ══════════════ -->
+<div class="loading" id="loading">
+  <div class="spinner"></div>
+  <p>Generando horario óptimo…</p>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  DATA & CONSTANTS
+// ═══════════════════════════════════════════════════════════
+const DAYS    = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+const MONTHS  = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const METRICS = ['Desayunos','Cenas','Check-in','Check-out'];
+
+const DEPT_LABELS = {
+  front:'Front Office', kitchen:'Cocina', maintenance:'Mantenimiento',
+  housekeeping:'Mucama', management:'Gerencia', security:'Auditor / Seg.'
+};
+const DEPT_COLORS = {
+  front:'#3b82f6', kitchen:'#f59e0b', maintenance:'#6b7280',
+  housekeeping:'#ec4899', management:'#1a1a2e', security:'#ef4444'
+};
+const DEPT_ICONS = {
+  front:'🛎️', kitchen:'👨‍🍳', maintenance:'🔧',
+  housekeeping:'🧹', management:'👔', security:'🌙'
+};
+const SHIFT_LABELS = {
+  '':'Sin preferencia', morning:'Mañana (6am–2pm)',
+  evening:'Tarde (2pm–10pm)', night:'Noche (10pm–6am)',
+  morning_fixed:'Mañana FIJO', evening_fixed:'Tarde FIJO'
+};
+
+// ── Default employees (seed data) ──
+const DEFAULT_EMPLOYEES = [
+  { id:1,  name:'Noelia',    department:'management',   level:'senior', fixedDay:6,    fixedOff:'Domingo',  shift:'morning_fixed', notes:'Turno mañana fijo. Libre: Domingo.' },
+  { id:2,  name:'Jose',      department:'front',        level:'junior', fixedDay:null, fixedOff:null,       shift:'',              notes:'Jueves mañana obligatorio.' },
+  { id:3,  name:'Roxana',    department:'front',        level:'senior', fixedDay:null, fixedOff:null,       shift:'',              notes:'Front desk senior. Rota mañana/tarde.' },
+  { id:4,  name:'Francisco', department:'front',        level:'senior', fixedDay:null, fixedOff:null,       shift:'',              notes:'Front desk senior. Cubre auditor cuando le toca.' },
+  { id:5,  name:'Apdul',     department:'front',        level:'junior', fixedDay:null, fixedOff:null,       shift:'',              notes:'Front desk junior. Rota mañana/tarde.' },
+  { id:6,  name:'Yostin',    department:'kitchen',      level:'senior', fixedDay:null, fixedOff:null,       shift:'',              notes:'Head Chef. Jueves tarde obligatorio. Descansa con Vanessa.' },
+  { id:7,  name:'Keylor',    department:'kitchen',      level:'junior', fixedDay:null, fixedOff:null,       shift:'',              notes:'Cocina. Mañana en baja/media ocupación.' },
+  { id:8,  name:'Andrey',    department:'kitchen',      level:'mid',    fixedDay:null, fixedOff:null,       shift:'',              notes:'Cocina. Junto a Keylor en alta ocupación (cenas).' },
+  { id:9,  name:'Elton',     department:'maintenance',  level:'senior', fixedDay:5,    fixedOff:'Sábado',   shift:'morning',       notes:'Mantenimiento 7am–3pm. Libre: Sábado.' },
+  { id:10, name:'Pablo',     department:'maintenance',  level:'senior', fixedDay:6,    fixedOff:'Domingo',  shift:'morning',       notes:'Mantenimiento 7am–3pm. Libre: Domingo. Cubre auditor en semanas pares.' },
+  { id:11, name:'Aracely',   department:'housekeeping', level:'mid',    fixedDay:null, fixedOff:null,       shift:'morning',       notes:'Mucama exclusivo.' },
+  { id:12, name:'Vanessa',   department:'housekeeping', level:'mid',    fixedDay:null, fixedOff:null,       shift:'morning',       notes:'Mucama exclusivo. Descansa con Yostin.' },
+  { id:13, name:'Maikel',    department:'security',     level:'senior', fixedDay:null, fixedOff:null,       shift:'night',         notes:'Auditor nocturno fijo 10pm–6am. Libre rotativo (preferir L–V).' },
+];
+
+// ── State ──
+let employees      = JSON.parse(localStorage.getItem('hotelEmployees') || 'null') || DEFAULT_EMPLOYEES.map(e=>({...e}));
+let nextEmpId      = Math.max(...employees.map(e=>e.id), 13) + 1;
+let scheduleData   = {};
+let metricsData    = {};
+let occupancyChart = null;
+let rowStructure   = [];
+
+// ── Employee editing state ──
+let _editingEmpId     = null;
+let _tempRestrictions = [];
+let _tempPhoto        = null;
+
+// ── Maikel cover toggle (0=Pablo, 1=Francisco) ──
+let weekCoverIndex = 0;
+
+// ── Schedule generation globals (set by _assignDaysOff) ──
+let yostinDayOff    = -1;
+let maikelDayOff    = -1;
+let franciscoDayOff = -1;
+
+// ── Auth state ──
+const ADMIN = {
+  id:'admin', name:'Mike Sosa', username:'mikesosacr',
+  password:'mikesosa110690047', role:'admin', createdAt:'Sistema'
+};
+let appUsers    = JSON.parse(localStorage.getItem('hotelAppUsers') || '[]');
+let currentUser = null;
+
+function _saveAppUsers()    { localStorage.setItem('hotelAppUsers',    JSON.stringify(appUsers)); }
+function _saveEmployees()   { localStorage.setItem('hotelEmployees',   JSON.stringify(employees)); }
+
+// ── History ──
+let scheduleHistory = JSON.parse(localStorage.getItem('hotelScheduleHistory') || '[]');
+
+// ═══════════════════════════════════════════════════════════
+//  TABLE STRUCTURE — single source of truth for row indices
+// ═══════════════════════════════════════════════════════════
+const TABLE_STRUCTURE = [
+  { type:'header', label:'MÉTRICAS' },
+  { type:'data', label:'Desayunos',        rowClass:'row-metric',  dataType:'metric'   },
+  { type:'data', label:'Cenas',            rowClass:'row-metric',  dataType:'metric'   },
+  { type:'data', label:'Check-in',         rowClass:'row-metric',  dataType:'checkin'  },
+  { type:'data', label:'Check-out',        rowClass:'row-metric',  dataType:'checkout' },
+  { type:'header', label:'TURNO MAÑANA — 6am a 2pm' },
+  { type:'data', label:'Gerencia',         rowClass:'row-morning', dataType:'staff' },
+  { type:'data', label:'Front (M)',        rowClass:'row-morning', dataType:'staff' },
+  { type:'data', label:'Cocina (M)',       rowClass:'row-morning', dataType:'staff' },
+  { type:'data', label:'Mantenimiento',    rowClass:'row-morning', dataType:'staff' },
+  { type:'data', label:'Mucama 1 (M)',     rowClass:'row-morning', dataType:'staff' },
+  { type:'data', label:'Mucama 2 (M)',     rowClass:'row-morning', dataType:'staff' },
+  { type:'header', label:'TURNO TARDE — 2pm a 10pm' },
+  { type:'data', label:'Front (T)',        rowClass:'row-evening', dataType:'staff' },
+  { type:'data', label:'Cocina (T)',       rowClass:'row-evening', dataType:'staff' },
+  { type:'header', label:'TURNO NOCHE — 10pm a 6am' },
+  { type:'data', label:'Auditor / Seg.',   rowClass:'row-evening', dataType:'staff' },
+  { type:'header', label:'OTROS' },
+  { type:'data', label:'Día libre semanal',rowClass:'row-other',   dataType:'other' },
+  { type:'data', label:'Día acumulado',    rowClass:'row-other',   dataType:'other' },
+  { type:'data', label:'Vacaciones',       rowClass:'row-other',   dataType:'other' },
+  { type:'data', label:'PSG',              rowClass:'row-other',   dataType:'other' },
+  { type:'data', label:'Incapacidad',      rowClass:'row-other',   dataType:'other' },
+  { type:'data', label:'Ausencias',        rowClass:'row-other',   dataType:'other' },
+];
+
+// ── Row index map: computed ONCE from TABLE_STRUCTURE ──
+const R = (() => {
+  const map = {};
+  let ri = 0;
+  TABLE_STRUCTURE.forEach(def => {
+    if (def.type === 'data') { map[def.label] = ri; ri++; }
+  });
+  return {
+    mgmt:   map['Gerencia'],
+    frontM: map['Front (M)'],
+    kitM:   map['Cocina (M)'],
+    maint:  map['Mantenimiento'],
+    hk1:    map['Mucama 1 (M)'],
+    hk2:    map['Mucama 2 (M)'],
+    frontT: map['Front (T)'],
+    kitT:   map['Cocina (T)'],
+    audit:  map['Auditor / Seg.'],
+    dOff:   map['Día libre semanal'],
+    accum:  map['Día acumulado'],
+    vac:    map['Vacaciones'],
+    psg:    map['PSG'],
+    incap:  map['Incapacidad'],
+    ausent: map['Ausencias'],
+    _map:   map,
+  };
+})();
+
+// ═══════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════
+window.addEventListener('load', () => {
+  const today = new Date();
+  const dow   = today.getDay();
+  // Next Monday (or today if it's Monday)
+  const diff  = dow === 1 ? 0 : (8 - dow) % 7 || 7;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + diff);
+  document.getElementById('startDate').value = formatDateInput(monday);
+
+  initMetrics();
+  initScheduleTable();
+  renderEmployees();
+  updateWeekDates();
+  renderHistory();
+  _updateReqBadge();
+  // Auth overlay is visible by default (no hidden class)
+});
+
+function formatDateInput(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function parseDateLocal(str) {
+  const [y,m,d] = str.split('-').map(Number);
+  return new Date(y, m-1, d);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════════════════════════
+function switchTab(name) {
+  if (name === 'users' && currentUser?.role !== 'admin') {
+    showToast('Solo el administrador puede acceder a esta sección.', 'warn');
+    return;
+  }
+  document.querySelectorAll('.nav-tab, .sidebar-item[data-tab]').forEach(b =>
+    b.classList.toggle('active', b.dataset.tab === name)
+  );
+  document.querySelectorAll('.tab-content').forEach(c =>
+    c.classList.toggle('active', c.id === `tab-${name}`)
+  );
+  if (name === 'metrics')  updateStats();
+  if (name === 'requests') renderRequests();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  AUTH SYSTEM
+// ═══════════════════════════════════════════════════════════
+function showAuthLanding() {
+  document.getElementById('auth-landing').style.display = 'block';
+  document.getElementById('auth-form').style.display    = 'none';
+  document.getElementById('auth-error').classList.remove('show');
+}
+function showLoginForm() {
+  document.getElementById('auth-landing').style.display = 'none';
+  document.getElementById('auth-form').style.display    = 'block';
+  document.getElementById('auth-error').classList.remove('show');
+  document.getElementById('auth-username').value = '';
+  document.getElementById('auth-password').value = '';
+  setTimeout(() => document.getElementById('auth-username').focus(), 80);
+}
+function doLogin() {
+  const u = document.getElementById('auth-username').value.trim();
+  const p = document.getElementById('auth-password').value;
+  let found = null;
+  if (u === ADMIN.username && p === ADMIN.password) found = ADMIN;
+  else found = appUsers.find(x => x.username === u && x.password === p) || null;
+  if (!found) {
+    document.getElementById('auth-error').classList.add('show');
+    document.getElementById('auth-password').value = '';
+    return;
+  }
+  currentUser = found;
+  document.getElementById('auth-overlay').classList.add('hidden');
+  _updateNavUser();
+  _applyRolePermissions();
+  showToast('¡Bienvenido, ' + found.name + '! 👋', 'success');
+}
+function doLogout() {
+  if (!confirm('¿Cerrar sesión?')) return;
+  currentUser = null;
+  document.getElementById('nav-user-pill').style.display = 'none';
+  showAuthLanding();
+  document.getElementById('auth-overlay').classList.remove('hidden');
+}
+function _updateNavUser() {
+  if (!currentUser) return;
+  const initials = currentUser.name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('nav-avatar').textContent = initials;
+  document.getElementById('nav-uname').textContent  = currentUser.name;
+  document.getElementById('nav-urole').textContent  = currentUser.role === 'admin' ? 'Administrador' : 'Editor';
+  document.getElementById('nav-user-pill').style.display = 'flex';
+  const footer = document.getElementById('sidebar-footer-user');
+  if (footer) footer.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px">
+      <div style="width:28px;height:28px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:12px;color:var(--ink);font-weight:700;flex-shrink:0">${initials}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;color:var(--cream);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${currentUser.name}</div>
+        <div style="font-size:10px;color:var(--mist)">${currentUser.role === 'admin' ? 'Administrador' : 'Editor'}</div>
+      </div>
+      <button onclick="doLogout();closeSidebar()" style="background:none;border:1px solid rgba(255,255,255,0.15);color:var(--mist);padding:3px 8px;border-radius:5px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s" onmouseover="this.style.borderColor='var(--danger)';this.style.color='var(--danger)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.15)';this.style.color='var(--mist)'">Salir</button>
+    </div>`;
+}
+function _applyRolePermissions() {
+  const isAdmin = currentUser?.role === 'admin';
+  ['tab-users-btn', 'sidebar-users-btn'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.style.display = isAdmin ? '' : 'none';
+  });
+  if (isAdmin) renderUserTable();
+}
+
+// ── Sidebar ──
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebarOverlay').classList.add('open');
+  document.querySelector('.hamburger')?.classList.add('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
+  document.querySelector('.hamburger')?.classList.remove('open');
+}
+
+function toggleMobileMenu() {}
+function closeMobileMenu() {}
+
+// ── Portal ──
+function openPortalDirect() {
+  document.getElementById('auth-overlay').classList.add('hidden');
+  _renderPortal();
+  showPortalSection('schedule');
+  document.getElementById('portalBackBtn').textContent = '← Menú principal';
+  document.getElementById('portal-overlay').classList.remove('hidden');
+}
+function openPortalLoggedIn() {
+  _renderPortal();
+  showPortalSection('schedule');
+  document.getElementById('portalBackBtn').textContent = '← Volver al sistema';
+  document.getElementById('portal-overlay').classList.remove('hidden');
+}
+function closePortal() {
+  document.getElementById('portal-overlay').classList.add('hidden');
+  if (!currentUser) document.getElementById('auth-overlay').classList.remove('hidden');
+}
+function _renderPortal() {
+  const weekLbl  = document.getElementById('weekNumber')?.value || '';
+  const startVal = document.getElementById('startDate')?.value  || '';
+  document.getElementById('portal-week-label').textContent = weekLbl || 'Horario semanal';
+  document.getElementById('portal-week-badge').textContent = weekLbl || '—';
+
+  const hasData = Object.keys(scheduleData).some(ri =>
+    Object.values(scheduleData[ri] || {}).some(v => v && v !== '—' && v !== ''));
+
+  const wrap = document.getElementById('portal-schedule-wrap');
+  if (!hasData) {
+    wrap.innerHTML = `<div class="no-schedule-card">
+      <div class="ns-icon">📋</div>
+      <h3>El horario de esta semana aún no está generado</h3>
+      <p>El administrador no ha publicado el horario todavía. Volvé más tarde o consultá con tu supervisor.</p>
+    </div>`;
+    return;
+  }
+
+  function gc(ri, d) { return scheduleData[ri]?.[d] || ''; }
+
+  let dateLabels = DAYS.slice();
+  if (startVal) {
+    const sd = parseDateLocal(startVal);
+    dateLabels = DAYS.map((_, i) => {
+      const d = new Date(sd); d.setDate(sd.getDate() + i);
+      return DAYS[i] + '<br><small style="color:var(--gold)">' + d.getDate() + ' ' + MONTHS[d.getMonth()] + '</small>';
+    });
+  }
+
+  const rows = [
+    { h:'Ocupación' },
+    { l:'Desayunos', v: DAYS.map((_,i) => gc(R._map['Desayunos'], i)) },
+    { l:'Cenas',     v: DAYS.map((_,i) => gc(R._map['Cenas'], i)) },
+    { l:'Check-in',  v: DAYS.map((_,i) => gc(R._map['Check-in'], i)) },
+    { l:'Check-out', v: DAYS.map((_,i) => gc(R._map['Check-out'], i)) },
+    { h:'Turno Mañana — 6am a 2pm' },
+    { l:'Gerencia',      v: DAYS.map((_,i) => gc(R.mgmt,  i)) },
+    { l:'Front',         v: DAYS.map((_,i) => gc(R.frontM, i)) },
+    { l:'Cocina',        v: DAYS.map((_,i) => gc(R.kitM,   i)) },
+    { l:'Mantenimiento', v: DAYS.map((_,i) => gc(R.maint,  i)) },
+    { l:'Mucama 1',      v: DAYS.map((_,i) => gc(R.hk1,    i)) },
+    { l:'Mucama 2',      v: DAYS.map((_,i) => gc(R.hk2,    i)) },
+    { h:'Turno Tarde — 2pm a 10pm' },
+    { l:'Front',  v: DAYS.map((_,i) => gc(R.frontT, i)) },
+    { l:'Cocina', v: DAYS.map((_,i) => gc(R.kitT,   i)) },
+    { h:'Turno Noche — 10pm a 6am' },
+    { l:'Auditor / Seg.', v: DAYS.map((_,i) => gc(R.audit, i)) },
+    { h:'Días Libres' },
+    { l:'Día libre semanal', v: DAYS.map((_,i) => gc(R.dOff,  i)) },
+    { l:'Vacaciones',        v: DAYS.map((_,i) => gc(R.vac,   i)) },
+    { l:'PSG',               v: DAYS.map((_,i) => gc(R.psg,   i)) },
+    { l:'Incapacidad',       v: DAYS.map((_,i) => gc(R.incap, i)) },
+    { l:'Ausencias',         v: DAYS.map((_,i) => gc(R.ausent,i)) },
+  ];
+
+  let html = '<div class="portal-table-wrap"><table class="portal-table"><thead><tr>'
+    + '<th style="text-align:left;padding-left:14px;min-width:130px">Categoría</th>'
+    + dateLabels.map(d => '<th>' + d + '</th>').join('')
+    + '</tr></thead><tbody>';
+
+  rows.forEach(def => {
+    if (def.h) {
+      html += '<tr><td colspan="8" class="p-section">' + def.h + '</td></tr>';
+    } else {
+      html += '<tr><td class="p-label">' + def.l + '</td>'
+        + def.v.map(v => v ? '<td>' + v + '</td>' : '<td class="portal-empty-cell">—</td>').join('')
+        + '</tr>';
+    }
+  });
+  html += '</tbody></table></div>';
+  wrap.innerHTML = html;
+}
+
+// ── User management ──
+function addUser() {
+  if (currentUser?.role !== 'admin') { showToast('Solo el administrador puede crear usuarios.', 'warn'); return; }
+  const name     = document.getElementById('nu-name').value.trim();
+  const username = document.getElementById('nu-username').value.trim().toLowerCase().replace(/\s+/g,'');
+  const password = document.getElementById('nu-password').value;
+  const role     = document.getElementById('nu-role').value;
+  if (!name || !username || !password) { showToast('Completá todos los campos.', 'warn'); return; }
+  if (password.length < 6)            { showToast('Contraseña mínimo 6 caracteres.', 'warn'); return; }
+  if (username === ADMIN.username || appUsers.find(u => u.username === username))
+    { showToast('Ese usuario ya existe.', 'warn'); return; }
+  appUsers.push({ id: Date.now().toString(), name, username, password, role,
+    createdAt: new Date().toLocaleDateString('es-CR') });
+  _saveAppUsers();
+  renderUserTable();
+  document.getElementById('nu-name').value = '';
+  document.getElementById('nu-username').value = '';
+  document.getElementById('nu-password').value = '';
+  showToast('Usuario "' + name + '" creado.', 'success');
+}
+function deleteUser(id) {
+  if (currentUser?.role !== 'admin') return;
+  const u = appUsers.find(x => x.id === id);
+  if (!u || !confirm('¿Eliminar usuario "' + u.name + '"?')) return;
+  appUsers = appUsers.filter(x => x.id !== id);
+  _saveAppUsers();
+  renderUserTable();
+  showToast(u.name + ' eliminado.', 'info');
+}
+function renderUserTable() {
+  const tbody = document.getElementById('userTableBody');
+  if (!tbody) return;
+  let html = '<tr>'
+    + '<td><strong>' + ADMIN.name + '</strong></td>'
+    + '<td><code style="background:var(--cream);padding:2px 6px;border-radius:4px">' + ADMIN.username + '</code></td>'
+    + '<td><span class="role-badge role-admin">Admin</span></td>'
+    + '<td style="color:#aaa">Sistema</td>'
+    + '<td style="color:#aaa;font-size:11px">No eliminable</td>'
+    + '</tr>';
+  appUsers.forEach(u => {
+    html += '<tr>'
+      + '<td><strong>' + u.name + '</strong></td>'
+      + '<td><code style="background:var(--cream);padding:2px 6px;border-radius:4px">' + u.username + '</code></td>'
+      + '<td><span class="role-badge role-' + u.role + '">' + (u.role === 'admin' ? 'Admin' : 'Editor') + '</span></td>'
+      + '<td style="color:#aaa">' + u.createdAt + '</td>'
+      + '<td><button class="btn btn-danger btn-sm" onclick="deleteUser(\'' + u.id + '\')">✕ Eliminar</button></td>'
+      + '</tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+
+// ═══════════════════════════════════════════════════════════
+//  METRICS
+// ═══════════════════════════════════════════════════════════
+function initMetrics() {
+  const container = document.getElementById('metricsContainer');
+  const METRIC_ICONS = { 'Desayunos':'🍳', 'Cenas':'🍽️', 'Check-in':'🛎️', 'Check-out':'🧳' };
+  const METRIC_PH    = { 'Desayunos':'0', 'Cenas':'0', 'Check-in':'ej: 1,23,5', 'Check-out':'ej: 2,14' };
+
+  let html = `<table class="metrics-table">
+    <thead><tr>
+      <th style="text-align:left">Métrica</th>
+      ${DAYS.map((d,i) => `<th id="mhDay${i}">${d}</th>`).join('')}
+    </tr></thead><tbody>`;
+
+  METRICS.forEach(metric => {
+    html += `<tr><td>${METRIC_ICONS[metric]||''} ${metric}</td>
+      ${DAYS.map((_,d) => `<td><input class="metric-input" type="text"
+        id="${metricInputId(d,metric)}" data-day="${d}" data-metric="${metric}"
+        placeholder="${METRIC_PH[metric]||'—'}"
+        oninput="onMetricInput(${d},'${metric}',this.value)"
+        onkeydown="handleMetricKey(event,${d},'${metric}')"></td>`).join('')}
+    </tr>`;
+  });
+
+  html += `</tbody></table>`;
+  container.innerHTML = html;
+}
+
+function metricInputId(day, metric) {
+  return `metric_${day}_${metric.replace(/[^a-zA-Z]/g,'')}`;
+}
+
+function onMetricInput(day, metric, value) {
+  storeMetric(day, metric, value);
+  syncTableMetric(day, metric, value);
+}
+
+function storeMetric(day, metric, rawValue) {
+  if (metric === 'Desayunos' || metric === 'Cenas') {
+    const clean = String(rawValue).replace(/[^0-9]/g,'');
+    metricsData[`${day}_${metric}`] = parseInt(clean) || 0;
+  } else {
+    metricsData[`${day}_${metric}`] = rawValue;
+    const nums = String(rawValue).replace(/#/g,'').split(/[\s,\-\/]+/).filter(v => v && !isNaN(v));
+    metricsData[`${day}_${metric}_count`] = nums.length;
+  }
+}
+
+function syncTableMetric(day, metric, value) {
+  const rowMap = { 'Desayunos': R._map['Desayunos'], 'Cenas': R._map['Cenas'],
+                   'Check-in':  R._map['Check-in'],   'Check-out': R._map['Check-out'] };
+  const ri = rowMap[metric];
+  if (ri === undefined) return;
+  const inp = document.querySelector(`.cell-input[data-row="${ri}"][data-day="${day}"]`);
+  if (inp) {
+    inp.value = value;
+    saveCellData(ri, day, value);
+    inp.style.background = 'rgba(201,168,76,0.18)';
+    setTimeout(() => inp.style.background = '', 400);
+  }
+}
+
+function handleMetricKey(e, day, metric) {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const input = e.target;
+  let val = input.value.trim();
+  if (metric === 'Check-in' || metric === 'Check-out') {
+    val = formatCheckNumbers(val);
+    input.value = val;
+  }
+  onMetricInput(day, metric, val);
+  input.style.background = '#d1fae5';
+  setTimeout(() => input.style.background = '', 350);
+  const mi = METRICS.indexOf(metric);
+  let nextDay    = day;
+  let nextMetric = METRICS[mi + 1];
+  if (!nextMetric) { nextDay = day + 1; nextMetric = METRICS[0]; }
+  if (nextDay >= 7) return;
+  const nextEl = document.getElementById(metricInputId(nextDay, nextMetric));
+  if (nextEl) { nextEl.focus(); nextEl.select(); }
+}
+
+function formatCheckNumbers(val) {
+  if (!val || val === '—' || val === '-') return val;
+  const clean = val.replace(/#/g,'').trim();
+  let parts = [];
+  if (/[\s,\/]/.test(clean) || /\d\-\d/.test(clean)) {
+    parts = clean.split(/[\s,\/\-]+/).map(v=>v.trim()).filter(v=>v!==''&&!isNaN(v));
+  } else {
+    parts = clean.split('').filter(c=>/\d/.test(c));
+  }
+  if (parts.length > 0) return parts.map(v=>`#${v}`).join(' - ');
+  return val;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SCHEDULE TABLE
+// ═══════════════════════════════════════════════════════════
+function initScheduleTable() {
+  const headerRow = document.getElementById('headerRow');
+  const body      = document.getElementById('scheduleBody');
+  headerRow.innerHTML = '<th style="text-align:left;padding-left:14px">Categoría / Día</th>';
+  for (let i = 0; i < 7; i++) {
+    const th = document.createElement('th');
+    th.id = `hDay${i}`;
+    th.innerHTML = `${DAYS[i]}<br><small>—</small>`;
+    headerRow.appendChild(th);
+  }
+  body.innerHTML = '';
+  let ri = 0;
+  rowStructure = [];
+  TABLE_STRUCTURE.forEach(def => {
+    if (def.type === 'header') {
+      const tr = document.createElement('tr');
+      const th = document.createElement('th');
+      th.colSpan = 8; th.className = 'section-header'; th.textContent = def.label;
+      tr.appendChild(th); body.appendChild(tr);
+    } else {
+      rowStructure.push({ ...def, ri });
+      const tr = document.createElement('tr');
+      tr.className = def.rowClass || ''; tr.dataset.ri = ri;
+      const tdLabel = document.createElement('td');
+      tdLabel.className = 'row-label'; tdLabel.textContent = def.label;
+      tr.appendChild(tdLabel);
+      for (let d = 0; d < 7; d++) {
+        const td  = document.createElement('td');
+        const inp = document.createElement('input');
+        inp.type = 'text'; inp.className = 'cell-input';
+        inp.dataset.row = ri; inp.dataset.day = d; inp.dataset.dtype = def.dataType;
+        inp.placeholder = '—';
+        inp.addEventListener('keydown', ev => {
+          if (ev.key === 'Enter') {
+            ev.preventDefault(); formatCellValue(inp);
+            saveCellData(ri, d, inp.value); flashCell(inp); moveToNextCell(inp);
+          }
+        });
+        inp.addEventListener('change', () => { formatCellValue(inp); saveCellData(ri, d, inp.value); });
+        td.appendChild(inp); tr.appendChild(td);
+      }
+      body.appendChild(tr); ri++;
+    }
+  });
+}
+
+function formatCellValue(inp) {
+  const t = inp.dataset.dtype;
+  if (t === 'checkin' || t === 'checkout') inp.value = formatCheckNumbers(inp.value.trim());
+}
+function flashCell(inp) {
+  inp.style.background = 'rgba(74,140,106,0.15)';
+  setTimeout(() => inp.style.background = '', 350);
+}
+function moveToNextCell(inp) {
+  const all = [...document.querySelectorAll('.cell-input')];
+  const idx = all.indexOf(inp);
+  if (idx < all.length - 1) all[idx + 1].focus();
+}
+function setCell(ri, day, value) {
+  const inp = document.querySelector(`.cell-input[data-row="${ri}"][data-day="${day}"]`);
+  if (inp) { inp.value = value; saveCellData(ri, day, value); }
+}
+function saveCellData(ri, day, value) {
+  if (!scheduleData[ri]) scheduleData[ri] = {};
+  scheduleData[ri][day] = value;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  WEEK DATES
+// ═══════════════════════════════════════════════════════════
+function updateWeekDates() {
+  const val = document.getElementById('startDate').value;
+  if (!val) return;
+  const start = parseDateLocal(val);
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(start); d.setDate(start.getDate() + i);
+    const label = `${DAYS[i]}<br><small>${d.getDate()} ${MONTHS[d.getMonth()]}</small>`;
+    const th  = document.getElementById(`hDay${i}`);
+    const mth = document.getElementById(`mhDay${i}`);
+    if (th)  th.innerHTML  = label;
+    if (mth) mth.innerHTML = label;
+  }
+  const wn = getWeekNumber(start);
+  document.getElementById('weekNumber').value = `Semana ${wn} — ${start.getFullYear()}`;
+}
+function getWeekNumber(d) {
+  const date = new Date(d);
+  date.setHours(0,0,0,0);
+  date.setDate(date.getDate() + 3 - (date.getDay()+6)%7);
+  const jan4 = new Date(date.getFullYear(), 0, 4);
+  return 1 + Math.round(((date-jan4)/86400000 - 3 + (jan4.getDay()+6)%7)/7);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  STATS & CHART
+// ═══════════════════════════════════════════════════════════
+function updateStats() {
+  let tb = 0, td = 0, peak = { day:0, val:0 };
+  for (let i = 0; i < 7; i++) {
+    const b = metricsData[`${i}_Desayunos`] || 0;
+    const c = metricsData[`${i}_Cenas`]     || 0;
+    tb += b; td += c;
+    if (b + c > peak.val) peak = { day:i, val:b+c };
+  }
+  document.getElementById('totalBreakfasts').textContent = tb;
+  document.getElementById('totalDinners').textContent    = td;
+  document.getElementById('peakDay').textContent         = tb+td > 0 ? DAYS[peak.day] : '—';
+  document.getElementById('avgOccupancy').textContent    = Math.round((tb+td)/7);
+  drawChart();
+}
+function drawChart() {
+  const ctx = document.getElementById('occupancyChart').getContext('2d');
+  const bData = DAYS.map((_,i) => metricsData[`${i}_Desayunos`] || 0);
+  const cData = DAYS.map((_,i) => metricsData[`${i}_Cenas`]     || 0);
+  if (occupancyChart) occupancyChart.destroy();
+  occupancyChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: DAYS,
+      datasets: [
+        { label:'Desayunos', data:bData, backgroundColor:'rgba(201,168,76,0.8)',  borderColor:'#c9a84c', borderWidth:1.5 },
+        { label:'Cenas',     data:cData, backgroundColor:'rgba(123,111,160,0.8)', borderColor:'#7b6fa0', borderWidth:1.5 }
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:true,
+      plugins: { legend: { labels: { font:{ family:"'DM Sans', sans-serif", size:12 }, color:'#1a1a2e' } } },
+      scales: {
+        y: { beginAtZero:true, grid:{ color:'rgba(0,0,0,0.05)' } },
+        x: { grid:{ display:false } }
+      }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SCHEDULE GENERATION
+// ═══════════════════════════════════════════════════════════
+function getOccupancyLevel(v) { return v <= 5 ? 'low' : v <= 10 ? 'medium' : 'high'; }
+
+function generateSchedule() {
+  const totalMetrics = DAYS.reduce((sum,_,i) =>
+    sum + (metricsData[`${i}_Desayunos`]||0) + (metricsData[`${i}_Cenas`]||0), 0);
+  if (totalMetrics === 0) {
+    showToast('⚠️ Ingresá al menos las métricas de Desayunos y Cenas antes de generar.', 'warn');
+    const mt = document.getElementById('metricsContainer');
+    mt.style.outline = '2px solid var(--warn)'; mt.style.borderRadius = '10px';
+    setTimeout(() => { mt.style.outline = ''; }, 2500);
+    return;
+  }
+  document.getElementById('loading').classList.add('active');
+  setTimeout(() => {
+    clearSchedule(true);
+    // Sync any un-entered metric values
+    METRICS.forEach(metric => {
+      for (let d = 0; d < 7; d++) {
+        const el = document.getElementById(metricInputId(d, metric));
+        if (el && el.value.trim()) onMetricInput(d, metric, el.value.trim());
+      }
+    });
+    const occ = DAYS.map((_,i) => {
+      const b  = metricsData[`${i}_Desayunos`] || 0;
+      const c  = metricsData[`${i}_Cenas`]     || 0;
+      const ci = metricsData[`${i}_Check-in_count`]  || 0;
+      const co = metricsData[`${i}_Check-out_count`] || 0;
+      return { day:i, b, c, ci, co, total:b+c+ci+co, level:getOccupancyLevel(b+c) };
+    });
+    _assignManagement(occ);
+    _assignDaysOff(occ);
+    _assignFront(occ);
+    _assignKitchen(occ);
+    _assignMaintenance(occ);
+    _assignHousekeeping(occ);
+    _assignSecurity(occ);
+    document.getElementById('loading').classList.remove('active');
+    showToast('✅ Horario generado. Revisá y validá antes de aprobar.', 'success');
+  }, 1200);
+}
+
+// ── Helpers ──
+function _pickLowDay(occ, excluded=[], preferWeekday=false) {
+  let pool = [...occ].filter(d => !excluded.includes(d.day));
+  if (preferWeekday) {
+    const wd = pool.filter(d => d.day >= 0 && d.day <= 4);
+    if (wd.length) pool = wd;
+  }
+  pool.sort((a,b) => a.total - b.total);
+  return pool[0]?.day ?? 0;
+}
+
+// ── Management ──
+function _assignManagement(occ) {
+  for (let i = 0; i < 7; i++)
+    setCell(R.mgmt, i, i === 6 ? 'Libre' : 'Noelia');
+}
+
+// ── Days off (runs FIRST to set globals) ──
+function _assignDaysOff(occ) {
+  const offMap = {};
+  const add = (d, name) => { offMap[d] = offMap[d] || []; offMap[d].push(name); };
+
+  // Fixed
+  add(6, 'Noelia'); add(6, 'Pablo'); add(5, 'Elton');
+
+  // Maikel: rotativo, preferir L–V
+  maikelDayOff = _pickLowDay(occ, [5, 6], true);
+  add(maikelDayOff, 'Maikel');
+
+  // Yostin + Vanessa: same day, any day (excl Sunday, excl Maikel's)
+  yostinDayOff = _pickLowDay(occ, [6, maikelDayOff]);
+  add(yostinDayOff, 'Yostin'); add(yostinDayOff, 'Vanessa');
+
+  // Front desk: Jose(no Thu), Francisco(not on Maikel cover day if he covers)
+  const frontStaff = ['Jose','Roxana','Francisco','Apdul'];
+  const baseDays   = [1, 4, 0, 2]; // Mar, Vie, Lun, Mié
+  const frontOffMap  = {};
+  const usedFrontDays = new Set([yostinDayOff, maikelDayOff]);
+
+  frontStaff.forEach((name, idx) => {
+    let day = baseDays[idx];
+    // Jose can't take Thursday off
+    if (name === 'Jose' && day === 3) day = 1;
+    // Francisco covers Maikel when it's his week — don't let him also have that day off
+    if (name === 'Francisco' && weekCoverIndex === 1 && day === maikelDayOff) day = (day + 1) % 5;
+    // Avoid stacking days off
+    let tries = 0;
+    while (usedFrontDays.has(day) && tries < 7) { day = (day + 1) % 7; tries++; }
+    // One final guard: Jose can't have Thursday no matter what after re-assignment
+    if (name === 'Jose' && day === 3) day = (day + 1) % 7;
+    usedFrontDays.add(day);
+    frontOffMap[name] = day;
+    add(day, name);
+  });
+  franciscoDayOff = frontOffMap['Francisco'];
+
+  // Kitchen
+  const kitExcluded = [6, yostinDayOff, maikelDayOff];
+  const keylorfree  = _pickLowDay(occ, kitExcluded);
+  const andreyfree  = _pickLowDay(occ, [...kitExcluded, keylorfree]);
+  add(keylorfree, 'Keylor'); add(andreyfree, 'Andrey');
+
+  // Write to table
+  for (let d = 0; d < 7; d++)
+    setCell(R.dOff, d, offMap[d]?.join(' — ') || '—');
+}
+
+// ── Front Desk ──
+function _assignFront(occ) {
+  const baseRot = [
+    [['Roxana','Apdul'],    ['Francisco','Jose']],   // Lun
+    [['Francisco','Roxana'],['Jose','Apdul']],        // Mar
+    [['Apdul','Francisco'], ['Roxana','Jose']],       // Mié
+    [['Jose','Roxana'],     ['Francisco','Apdul']],   // Jue — Jose mañana obligatorio
+    [['Francisco','Apdul'], ['Roxana','Jose']],       // Vie
+    [['Roxana','Jose'],     ['Apdul','Francisco']],   // Sáb
+    [['Apdul','Roxana'],    ['Francisco','Jose']],    // Dom
+  ];
+  const dOffRow = scheduleData[R.dOff] || {};
+  const freeDay = {};
+  ['Jose','Roxana','Francisco','Apdul'].forEach(name => {
+    for (let d = 0; d < 7; d++)
+      if ((dOffRow[d]||'').includes(name)) freeDay[name] = d;
+  });
+  // Francisco covers Maikel on his cover day (when weekCoverIndex===1)
+  const francCoverDay = weekCoverIndex === 1 ? maikelDayOff : -1;
+
+  for (let i = 0; i < 7; i++) {
+    const lv = occ[i].level;
+    let [mPool, tPool] = baseRot[i].map(arr => [...arr]);
+    const filter = pool => pool.filter(n => freeDay[n] !== i);
+    mPool = filter(mPool); tPool = filter(tPool);
+
+    // Thursday: Jose must be in mañana
+    if (i === 3 && freeDay['Jose'] !== 3) {
+      if (!mPool.includes('Jose')) { mPool.unshift('Jose'); tPool = tPool.filter(n=>n!=='Jose'); }
+    }
+    // Francisco's cover day: he goes to tarde (to do late shift + audit permutation)
+    if (i === francCoverDay && freeDay['Francisco'] !== i) {
+      mPool = mPool.filter(n => n !== 'Francisco');
+      if (!tPool.includes('Francisco')) tPool.push('Francisco');
+    }
+
+    const slots  = lv === 'low' ? 1 : 2;
+    const morning = mPool.slice(0, slots);
+    const evening = tPool.slice(0, slots);
+    if (!morning.length && tPool.length) morning.push(tPool.shift());
+    if (!evening.length && mPool.length) evening.push(mPool.shift());
+
+    setCell(R.frontM, i, morning.join(' — ') || '—');
+    setCell(R.frontT, i, evening.join(' — ') || '—');
+  }
+}
+
+// ── Kitchen ──
+function _assignKitchen(occ) {
+  const dOffRow = scheduleData[R.dOff] || {};
+  const freeDay = {};
+  ['Yostin','Keylor','Andrey'].forEach(name => {
+    for (let d = 0; d < 7; d++)
+      if ((dOffRow[d]||'').includes(name)) freeDay[name] = d;
+  });
+  for (let i = 0; i < 7; i++) {
+    const lv    = occ[i].level;
+    const cenas = occ[i].c;
+    const yFree = freeDay['Yostin'] === i;
+    const kFree = freeDay['Keylor'] === i;
+    const aFree = freeDay['Andrey'] === i;
+    const JUEVES = (i === 3);
+    const avail = { Y:!yFree, K:!kFree, A:!aFree };
+
+    if (lv === 'high' || cenas > 8) {
+      const m = [avail.A?'Andrey':null, avail.K?'Keylor':null].filter(Boolean);
+      const t = avail.Y ? ['Yostin'] : (avail.A ? ['Andrey'] : []);
+      setCell(R.kitM, i, m.join(' — ') || '—');
+      setCell(R.kitT, i, t.join(' — ') || '—');
+    } else if (lv === 'medium') {
+      if (JUEVES && avail.Y) {
+        const m = [avail.K?'Keylor':null, avail.A?'Andrey':null].filter(Boolean);
+        setCell(R.kitM, i, m.join(' — ') || '—');
+        setCell(R.kitT, i, 'Yostin');
+      } else {
+        const m = avail.K ? 'Keylor' : (avail.A ? 'Andrey' : '—');
+        const tArr = [avail.Y?'Yostin':null, (avail.A && avail.K)?'Andrey':null].filter(Boolean);
+        setCell(R.kitM, i, m);
+        setCell(R.kitT, i, tArr.join(' — ') || '—');
+      }
+    } else {
+      if (JUEVES && avail.Y) {
+        setCell(R.kitM, i, avail.K ? 'Keylor' : '—');
+        setCell(R.kitT, i, 'Yostin');
+      } else {
+        setCell(R.kitM, i, avail.K ? 'Keylor' : (avail.A ? 'Andrey' : '—'));
+        setCell(R.kitT, i, avail.A ? 'Andrey' : (avail.Y ? 'Yostin' : '—'));
+      }
+    }
+  }
+}
+
+// ── Maintenance ──
+function _assignMaintenance(occ) {
+  for (let i = 0; i < 7; i++) {
+    if      (i === 5) setCell(R.maint, i, 'Pablo 7am–3pm');           // Sáb: Elton libre
+    else if (i === 6) setCell(R.maint, i, 'Elton 7am–3pm');           // Dom: Pablo libre
+    else              setCell(R.maint, i, 'Elton — Pablo  7am–3pm');  // L–V: ambos
+  }
+}
+
+// ── Housekeeping ──
+function _assignHousekeeping(occ) {
+  for (let i = 0; i < 7; i++) {
+    setCell(R.hk1, i, 'Aracely');
+    setCell(R.hk2, i, i === yostinDayOff ? 'Libre' : 'Vanessa');
+  }
+}
+
+// ── Security / Auditor ──
+function _assignSecurity(occ) {
+  const cover     = weekCoverIndex % 2 === 0 ? 'Pablo'    : 'Francisco';
+  const coverNote = weekCoverIndex % 2 === 0
+    ? 'Pablo 7am–3pm + 10pm–6am'
+    : 'Francisco 2pm–10pm + 10pm–6am';
+
+  for (let i = 0; i < 7; i++) {
+    setCell(R.audit, i,
+      i === maikelDayOff
+        ? `${coverNote} (cubre Maikel)`
+        : 'Maikel 10pm–6am'
+    );
+  }
+}
+
+function toggleCoverIndex() {
+  weekCoverIndex = (weekCoverIndex + 1) % 2;
+  const btn = document.getElementById('coverToggleBtn');
+  btn.textContent = weekCoverIndex === 0
+    ? '🔄 Pablo esta semana'
+    : '🔄 Francisco esta semana';
+  showToast(`Cobertura Maikel: ${weekCoverIndex===0?'Pablo':'Francisco'} esta semana.`, 'info');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  VALIDATION
+// ═══════════════════════════════════════════════════════════
+function validateSchedule() {
+  const errors = [], warns = [];
+  const frontM = scheduleData[R.frontM] || {};
+  const frontT = scheduleData[R.frontT] || {};
+  const kitT   = scheduleData[R.kitT]   || {};
+  const mgmt   = scheduleData[R.mgmt]   || {};
+  const audit  = scheduleData[R.audit]  || {};
+  const maint  = scheduleData[R.maint]  || {};
+  const dOff   = scheduleData[R.dOff]   || {};
+  const hk2    = scheduleData[R.hk2]    || {};
+
+  const getOffDay = name => {
+    for (let d = 0; d < 7; d++) if (String(dOff[d]||'').includes(name)) return d;
+    return -1;
+  };
+  const joseOff    = getOffDay('Jose');
+  const yostinOff  = getOffDay('Yostin');
+  const vanessaOff = getOffDay('Vanessa');
+  const maikelOff  = getOffDay('Maikel');
+
+  // R1: Jose turno mañana Jueves
+  if (joseOff !== 3 && !String(frontM[3]||'').toLowerCase().includes('jose'))
+    errors.push('Jose debe estar en <strong>turno mañana el Jueves</strong> (o tener ese día libre).');
+
+  // R2: Yostin turno tarde Jueves
+  if (yostinOff !== 3 && !String(kitT[3]||'').toLowerCase().includes('yostin'))
+    errors.push('Yostin debe estar en <strong>turno tarde el Jueves</strong> (o tener ese día libre).');
+
+  // R3: Noelia libre Domingo
+  if (String(mgmt[6]||'').toLowerCase().includes('noelia'))
+    errors.push('Noelia debe tener el <strong>Domingo libre</strong> completo.');
+
+  // R4: Pablo libre Domingo completo
+  if (String(maint[6]||'').toLowerCase().includes('pablo'))
+    errors.push('Pablo tiene <strong>Domingo libre completo</strong> — no debe aparecer en mantenimiento ese día.');
+  if (String(audit[6]||'').toLowerCase().includes('pablo') && weekCoverIndex !== 0)
+    errors.push('Pablo tiene <strong>Domingo libre completo</strong> — no debe cubrir auditor ese día (solo si esta semana le toca).');
+
+  // R5: Elton libre Sábado
+  if (String(maint[5]||'').toLowerCase().includes('elton'))
+    errors.push('Elton tiene <strong>Sábado libre</strong> — no debe aparecer en mantenimiento ese día.');
+
+  // R6: Maikel cubierto en su día libre
+  if (maikelOff >= 0) {
+    const v = String(audit[maikelOff]||'').toLowerCase();
+    if (!v.includes('pablo') && !v.includes('francisco'))
+      errors.push(`${DAYS[maikelOff]}: Maikel libra pero <strong>no hay cobertura</strong> en auditor nocturno.`);
+  }
+
+  // R7: Maikel en auditor todos los días que trabaja
+  for (let i = 0; i < 7; i++) {
+    if (i === maikelOff) continue;
+    const v = String(audit[i]||'').toLowerCase();
+    if (v && !v.includes('maikel'))
+      warns.push(`${DAYS[i]}: auditor nocturno sin Maikel asignado.`);
+  }
+
+  // R8: Yostin y Vanessa mismo día
+  if (yostinOff !== -1 && vanessaOff !== -1 && yostinOff !== vanessaOff)
+    errors.push(`Yostin y Vanessa deben descansar el <strong>mismo día</strong> — Yostin: ${DAYS[yostinOff]}, Vanessa: ${DAYS[vanessaOff]}.`);
+
+  // R9: Vanessa no trabaja el día que libra Yostin
+  if (yostinOff >= 0 && String(hk2[yostinOff]||'').toLowerCase().includes('vanessa'))
+    warns.push(`Vanessa aparece trabajando el ${DAYS[yostinOff]} pero debería librar con Yostin.`);
+
+  const html = (() => {
+    if (!errors.length && !warns.length)
+      return `<div class="alert alert-success">✅ <strong>Sin conflictos.</strong> El horario cumple todas las reglas verificadas.</div>`;
+    let out = '';
+    if (errors.length)
+      out += `<div class="alert alert-danger"><div><strong>❌ Errores (${errors.length})</strong><ul style="margin-top:8px;padding-left:1.2rem">${errors.map(e=>`<li style="margin-bottom:4px">${e}</li>`).join('')}</ul></div></div>`;
+    if (warns.length)
+      out += `<div class="alert alert-warn"><div><strong>⚠️ Advertencias (${warns.length})</strong><ul style="margin-top:8px;padding-left:1.2rem">${warns.map(w=>`<li style="margin-bottom:4px">${w}</li>`).join('')}</ul></div></div>`;
+    return out;
+  })();
+
+  document.getElementById('validationContent').innerHTML = html;
+  document.getElementById('validationModal').classList.add('active');
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('modal')) closeModal(e.target.id);
+});
+
+// ═══════════════════════════════════════════════════════════
+//  CLEAR / LOAD EXAMPLE
+// ═══════════════════════════════════════════════════════════
+function clearSchedule(silent=false) {
+  document.querySelectorAll('.cell-input').forEach(inp => inp.value = '');
+  scheduleData = {};
+  if (!silent) showToast('Horario limpiado.', 'info');
+}
+
+function importFromExcel() {
+  // Create a hidden file input and trigger click
+  let inp = document.getElementById('_excelImportInput');
+  if (!inp) {
+    inp = document.createElement('input');
+    inp.type = 'file';
+    inp.id = '_excelImportInput';
+    inp.accept = '.xlsx,.xls,.csv';
+    inp.style.display = 'none';
+    document.body.appendChild(inp);
+    inp.addEventListener('change', _handleExcelImport);
+  }
+  inp.value = '';
+  inp.click();
+}
+
+function _handleExcelImport(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  // For CSV: parse directly
+  if (file.name.endsWith('.csv')) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const lines = e.target.result.split('\n').map(l => l.split(',').map(c => c.trim().replace(/^"|"$/g,'')));
+      _importCSVLines(lines, file.name);
+    };
+    reader.readAsText(file);
+    return;
+  }
+
+  // For .xlsx/.xls: use SheetJS CDN dynamically if needed
+  if (typeof XLSX === 'undefined') {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload = () => _readXLSXFile(file);
+    s.onerror = () => showToast('❌ No se pudo cargar la librería de Excel. Verificá tu conexión.', 'danger');
+    document.head.appendChild(s);
+  } else {
+    _readXLSXFile(file);
+  }
+}
+
+function _readXLSXFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), { type:'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(ws, { header:1, defval:'' });
+      _importCSVLines(data, file.name);
+    } catch(err) {
+      showToast('❌ Error al leer el archivo Excel: ' + err.message, 'danger');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function _importCSVLines(lines, filename) {
+  if (!lines || lines.length < 2) {
+    showToast('⚠️ El archivo parece estar vacío o tiene formato inválido.', 'warn');
+    return;
+  }
+
+  // Try to detect week label from filename or first row
+  const weekLabel = (lines[0]?.[0] && String(lines[0][0]).trim()) || filename.replace(/\.[^.]+$/, '') || 'Importado';
+
+  // Map row labels to R indices
+  const labelMap = {
+    'desayunos':          { type:'metric', key:'Desayunos' },
+    'cenas':              { type:'metric', key:'Cenas' },
+    'check-in':           { type:'metric', key:'Check-in' },
+    'check-out':          { type:'metric', key:'Check-out' },
+    'gerencia':           { type:'cell', ri: R.mgmt   },
+    'front (m)':          { type:'cell', ri: R.frontM },
+    'front m':            { type:'cell', ri: R.frontM },
+    'cocina (m)':         { type:'cell', ri: R.kitM   },
+    'cocina m':           { type:'cell', ri: R.kitM   },
+    'mantenimiento':      { type:'cell', ri: R.maint  },
+    'mucama 1 (m)':       { type:'cell', ri: R.hk1    },
+    'mucama 1':           { type:'cell', ri: R.hk1    },
+    'mucama 2 (m)':       { type:'cell', ri: R.hk2    },
+    'mucama 2':           { type:'cell', ri: R.hk2    },
+    'front (t)':          { type:'cell', ri: R.frontT },
+    'front t':            { type:'cell', ri: R.frontT },
+    'cocina (t)':         { type:'cell', ri: R.kitT   },
+    'cocina t':           { type:'cell', ri: R.kitT   },
+    'auditor / seg.':     { type:'cell', ri: R.audit  },
+    'auditor':            { type:'cell', ri: R.audit  },
+    'día libre semanal':  { type:'cell', ri: R.dOff   },
+    'dia libre semanal':  { type:'cell', ri: R.dOff   },
+    'día acumulado':      { type:'cell', ri: R.accum  },
+    'vacaciones':         { type:'cell', ri: R.vac    },
+    'psg':                { type:'cell', ri: R.psg    },
+    'incapacidad':        { type:'cell', ri: R.incap  },
+    'ausencias':          { type:'cell', ri: R.ausent },
+  };
+
+  clearSchedule(true);
+  let filled = 0;
+
+  lines.forEach(row => {
+    if (!row || !row[0]) return;
+    const key = String(row[0]).toLowerCase().trim();
+    const def = labelMap[key];
+    if (!def) return;
+
+    for (let d = 0; d < 7; d++) {
+      const val = String(row[d + 1] || '').trim();
+      if (!val || val === '—') continue;
+
+      if (def.type === 'metric') {
+        const el = document.getElementById(metricInputId(d, def.key));
+        if (el) { el.value = val; onMetricInput(d, def.key, val); filled++; }
+      } else {
+        setCell(def.ri, d, val);
+        filled++;
+      }
+    }
+  });
+
+  updateStats();
+
+  if (filled === 0) {
+    showToast('⚠️ No se encontraron datos reconocibles. Verificá que las etiquetas de fila coincidan con la plantilla.', 'warn');
+    return;
+  }
+
+  // Auto-save to history
+  const weekLbl = document.getElementById('weekNumber').value || weekLabel;
+  const snapshot = {
+    id:           Date.now(),
+    weekLabel:    weekLbl,
+    startDate:    document.getElementById('startDate').value,
+    savedAt:      new Date().toLocaleString('es-CR'),
+    source:       'excel',
+    scheduleData: JSON.parse(JSON.stringify(scheduleData)),
+    metricsData:  JSON.parse(JSON.stringify(metricsData)),
+    metricInputs: _snapshotMetricInputs(),
+  };
+  scheduleHistory.unshift(snapshot);
+  if (scheduleHistory.length > 52) scheduleHistory.pop();
+  localStorage.setItem('hotelScheduleHistory', JSON.stringify(scheduleHistory));
+  renderHistory();
+
+  showToast(`✅ Importado "${weekLbl}" — ${filled} celdas cargadas y guardadas en historial.`, 'success');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  EMPLOYEES
+// ═══════════════════════════════════════════════════════════
+function renderEmployees() {
+  const list      = document.getElementById('employeeList');
+  const search    = (document.getElementById('empSearch')?.value || '').toLowerCase();
+  const deptFilt  = document.getElementById('empFilterDept')?.value  || '';
+  const levelFilt = document.getElementById('empFilterLevel')?.value || '';
+
+  document.getElementById('empStatTotal').textContent   = employees.length;
+  document.getElementById('empStatFront').textContent   = employees.filter(e=>e.department==='front').length;
+  document.getElementById('empStatKitchen').textContent = employees.filter(e=>e.department==='kitchen').length;
+  document.getElementById('empStatHK').textContent      = employees.filter(e=>e.department==='housekeeping').length;
+  document.getElementById('empStatMaint').textContent   = employees.filter(e=>e.department==='maintenance').length;
+  document.getElementById('empStatSec').textContent     = employees.filter(e=>e.department==='security').length;
+  document.getElementById('empStatMgmt').textContent    = employees.filter(e=>e.department==='management').length;
+
+  const filtered = employees.filter(emp => {
+    if (search    && !emp.name.toLowerCase().includes(search)) return false;
+    if (deptFilt  && emp.department !== deptFilt)              return false;
+    if (levelFilt && emp.level      !== levelFilt)             return false;
+    return true;
+  });
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="emp-empty">
+      <p style="font-size:2rem">👥</p>
+      <p>No se encontraron colaboradores${search ? ` con "${search}"` : ''}.</p>
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = '';
+  filtered.forEach(emp => {
+    const color       = DEPT_COLORS[emp.department] || '#888';
+    const initials    = emp.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const hasPhoto    = !!emp.photo;
+    const levelBadge  = { senior:'badge-senior', mid:'badge-mid', junior:'badge-junior' }[emp.level] || '';
+    const restrictions = emp.restrictions || [];
+
+    const card = document.createElement('div');
+    card.className = 'emp-card';
+    card.onclick = () => openEmpModal(emp.id);
+    card.innerHTML = `
+      <div class="emp-card-top" style="background:${color}"></div>
+      <div class="emp-card-body">
+        <div class="emp-card-avatar" style="background:${color}">
+          ${hasPhoto
+            ? `<img src="${emp.photo}" alt="${emp.name}">`
+            : `<span style="position:relative;z-index:1">${initials}</span>`}
+        </div>
+        <div class="emp-card-info">
+          <h4>${emp.name}</h4>
+          <div class="emp-role">${DEPT_ICONS[emp.department]||''} ${DEPT_LABELS[emp.department]||emp.department}${emp.role ? ' · '+emp.role : ''}</div>
+          <div class="emp-card-tags">
+            <span class="badge ${levelBadge}">${emp.level}</span>
+            ${emp.fixedOff ? `<span class="badge badge-off">🗓 ${emp.fixedOff}</span>` : ''}
+            ${emp.shift    ? `<span class="badge" style="background:#f0f4ff;color:#3b4fd4">${SHIFT_LABELS[emp.shift]||emp.shift}</span>` : ''}
+          </div>
+        </div>
+      </div>
+      ${restrictions.length ? `
+        <div class="emp-card-restrictions">
+          ${restrictions.slice(0,3).map(r=>`<span class="restriction-tag">⚠️ ${r}</span>`).join('')}
+          ${restrictions.length > 3 ? `<span class="restriction-tag">+${restrictions.length-3} más</span>` : ''}
+        </div>` : ''}
+      <div class="emp-card-footer">
+        <span class="emp-card-footer-info">
+          ${emp.phone ? `📱 ${emp.phone}` : ''}
+          ${emp.startDate ? ` · 📅 ${emp.startDate}` : ''}
+        </span>
+        <div class="emp-card-actions" onclick="event.stopPropagation()">
+          <button class="btn btn-primary btn-sm" onclick="openEmpModal(${emp.id})">✏️ Editar</button>
+          <button class="btn btn-danger btn-sm"  onclick="removeEmployee(${emp.id})">✕</button>
+        </div>
+      </div>`;
+    list.appendChild(card);
+  });
+}
+
+function openEmpModal(id) {
+  _editingEmpId     = id;
+  _tempRestrictions = [];
+  _tempPhoto        = null;
+
+  const emp = id !== null ? employees.find(e => e.id === id) : null;
+
+  document.getElementById('empModalTitle').textContent       = emp ? `Editando: ${emp.name}` : 'Nuevo Colaborador';
+  document.getElementById('empDeleteBtn').style.display      = emp ? 'inline-flex' : 'none';
+  document.getElementById('mEmpName').value                  = emp?.name       || '';
+  document.getElementById('mEmpRole').value                  = emp?.role       || '';
+  document.getElementById('mEmpPhone').value                 = emp?.phone      || '';
+  document.getElementById('mEmpStartDate').value             = emp?.startDate  || '';
+  document.getElementById('mEmpNotes').value                 = emp?.notes      || '';
+  document.getElementById('mEmpDept').value                  = emp?.department || 'front';
+  document.getElementById('mEmpLevel').value                 = emp?.level      || 'mid';
+  document.getElementById('mEmpShift').value                 = emp?.shift      || '';
+  document.getElementById('mEmpFixedDay').value              = emp?.fixedDay != null ? String(emp.fixedDay) : '';
+
+  document.getElementById('mEmpPortalUser').value = emp?.portalUser || '';
+  document.getElementById('mEmpPortalPass').value = emp?.portalPass || '';
+
+  const availDays = emp?.availDays ?? [0,1,2,3,4,5,6];
+  document.querySelectorAll('#mEmpAvailDays input[type=checkbox]').forEach(cb => {
+    cb.checked = availDays.includes(parseInt(cb.value));
+  });
+
+  _tempRestrictions = [...(emp?.restrictions || [])];
+  renderModalRestrictions();
+
+  _tempPhoto = emp?.photo || null;
+  updatePhotoPreview(emp?.name || '?', emp?.department || 'front');
+  updateModalColor();
+
+  document.getElementById('empModal').classList.add('active');
+  setTimeout(() => document.getElementById('mEmpName').focus(), 100);
+}
+
+function updateModalColor() {
+  const dept  = document.getElementById('mEmpDept').value;
+  const color = DEPT_COLORS[dept] || '#888';
+  document.getElementById('empColorSwatch').style.background  = color;
+  document.getElementById('empPhotoPreview').style.background = color;
+}
+
+function updatePhotoPreview(name, dept) {
+  const initials = name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() || '?';
+  const img = document.getElementById('empPhotoImg');
+  const ini = document.getElementById('empPhotoInitials');
+  document.getElementById('empPhotoPreview').style.background = DEPT_COLORS[dept] || '#888';
+  if (_tempPhoto) {
+    img.src = _tempPhoto; img.style.display = 'block'; ini.style.display = 'none';
+  } else {
+    img.style.display = 'none'; ini.style.display = 'block'; ini.textContent = initials;
+  }
+}
+
+function handlePhotoUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    _tempPhoto = e.target.result;
+    updatePhotoPreview(document.getElementById('mEmpName').value || '?', document.getElementById('mEmpDept').value);
+  };
+  reader.readAsDataURL(file);
+}
+
+function addRestriction() {
+  const inp = document.getElementById('mRestrictionInput');
+  const val = inp.value.trim();
+  if (!val) return;
+  _tempRestrictions.push(val);
+  inp.value = '';
+  renderModalRestrictions();
+}
+function removeRestriction(idx) {
+  _tempRestrictions.splice(idx, 1);
+  renderModalRestrictions();
+}
+function renderModalRestrictions() {
+  const list = document.getElementById('mEmpRestrictions');
+  list.innerHTML = _tempRestrictions.length
+    ? _tempRestrictions.map((r,i) => `
+        <div class="restriction-item">
+          <span>⚠️ ${r}</span>
+          <button onclick="removeRestriction(${i})" title="Eliminar">✕</button>
+        </div>`).join('')
+    : '<p style="font-size:12px;color:#ccc;padding:4px 0">Sin restricciones registradas.</p>';
+}
+
+function saveEmployee() {
+  const name = document.getElementById('mEmpName').value.trim();
+  if (!name) { showToast('El nombre es obligatorio.', 'warn'); return; }
+
+  const dept       = document.getElementById('mEmpDept').value;
+  const level      = document.getElementById('mEmpLevel').value;
+  const shift      = document.getElementById('mEmpShift').value;
+  const fixedDayV  = document.getElementById('mEmpFixedDay').value;
+  const fixedDay   = fixedDayV !== '' ? parseInt(fixedDayV) : null;
+  const notes      = document.getElementById('mEmpNotes').value.trim();
+  const phone      = document.getElementById('mEmpPhone').value.trim();
+  const startDate  = document.getElementById('mEmpStartDate').value;
+  const role       = document.getElementById('mEmpRole').value.trim();
+  const availDays  = [...document.querySelectorAll('#mEmpAvailDays input:checked')].map(cb => parseInt(cb.value));
+
+  const portalUser = document.getElementById('mEmpPortalUser').value.trim().toLowerCase().replace(/\s+/g,'');
+  const portalPass = document.getElementById('mEmpPortalPass').value;
+
+  const data = {
+    name, department: dept, level, shift,
+    fixedDay, fixedOff: fixedDay !== null ? DAYS[fixedDay] : null,
+    notes, phone, startDate, role,
+    restrictions: [..._tempRestrictions],
+    availDays,
+    photo: _tempPhoto,
+    portalUser: portalUser || null,
+    portalPass: portalPass || null,
+  };
+
+  if (_editingEmpId !== null) {
+    const idx = employees.findIndex(e => e.id === _editingEmpId);
+    if (idx >= 0) employees[idx] = { ...employees[idx], ...data };
+    showToast(`${name} actualizado.`, 'success');
+  } else {
+    employees.push({ id: nextEmpId++, ...data });
+    showToast(`${name} agregado correctamente.`, 'success');
+  }
+
+  _saveEmployees();
+  closeModal('empModal');
+  renderEmployees();
+}
+
+function deleteCurrentEmployee() {
+  const emp = employees.find(e => e.id === _editingEmpId);
+  if (!emp) return;
+  if (!confirm(`¿Eliminar a ${emp.name}? Esta acción no se puede deshacer.`)) return;
+  employees = employees.filter(e => e.id !== _editingEmpId);
+  _saveEmployees();
+  closeModal('empModal');
+  renderEmployees();
+  showToast(`${emp.name} eliminado.`, 'info');
+}
+
+function removeEmployee(id) {
+  const emp = employees.find(e => e.id === id);
+  if (!emp) return;
+  if (!confirm(`¿Eliminar a ${emp.name}?`)) return;
+  employees = employees.filter(e => e.id !== id);
+  _saveEmployees();
+  renderEmployees();
+  showToast(`${emp.name} eliminado.`, 'info');
+}
+
+function addEmployee() { openEmpModal(null); }
+
+// ═══════════════════════════════════════════════════════════
+//  EXPORT TO EXCEL
+// ═══════════════════════════════════════════════════════════
+function exportToExcel() {
+  // ── Collect data ──
+  function gc(ri, d) { return String(scheduleData[ri]?.[d] || ''); }
+  const startVal  = document.getElementById('startDate').value;
+  const startD    = startVal ? parseDateLocal(startVal) : new Date();
+  const weekLabel = document.getElementById('weekNumber').value || 'Horario Semanal';
+
+  const dateLabels = DAYS.map((_,i) => {
+    const d = new Date(startD); d.setDate(startD.getDate() + i);
+    return `${d.getDate()} - ${MONTHS[d.getMonth()]}`;
+  });
+
+  // Colors matching the template in the photo
+  const C = {
+    gold:    '#E6C35C',  // header días dorados
+    colA:    '#EAD7A4',  // columna A etiquetas
+    bf:      '#C6E0B4',  // desayunos verde
+    dn:      '#B4C6E7',  // cenas azul
+    ci:      '#F8CBAD',  // check-in naranja
+    co:      '#D9D2E9',  // check-out lila
+    section: '#E6C35C',  // bandas de sección (mismo dorado)
+    white:   '#FFFFFF',
+    black:   '#000000',
+    gray:    '#F2F2F2',
+  };
+
+  // ── Build table rows ──
+  const rows = [
+    // Métricas
+    { label:'Desayunos',    bg:C.colA,  dataBg:C.bf,    values: DAYS.map((_,i) => metricsData[`${i}_Desayunos`] || '') },
+    { label:'Cenas',        bg:C.colA,  dataBg:C.dn,    values: DAYS.map((_,i) => metricsData[`${i}_Cenas`]     || '') },
+    { label:'Check in',     bg:C.colA,  dataBg:C.ci,    values: DAYS.map((_,i) => gc(R._map['Check-in'],  i)) },
+    { label:'Check out',    bg:C.colA,  dataBg:C.co,    values: DAYS.map((_,i) => gc(R._map['Check-out'], i)) },
+    // Sección mañana
+    { section: 'Turno de 6 a.m hasta las 2 p.m', bg: C.section },
+    { label:'Gerencia',     bg:C.colA,  dataBg:C.white, values: DAYS.map((_,i) => gc(R.mgmt,  i)) },
+    { label:'Front',        bg:C.colA,  dataBg:C.white, values: DAYS.map((_,i) => gc(R.frontM,i)) },
+    { label:'Cocina',       bg:C.colA,  dataBg:C.white, values: DAYS.map((_,i) => gc(R.kitM,  i)) },
+    { label:'Mantenimiento',bg:C.colA,  dataBg:C.white, values: DAYS.map((_,i) => gc(R.maint, i)), rowspan2: true },
+    { label:'Mantenimiento',bg:C.colA,  dataBg:C.gray,  values: DAYS.map((_,i) => 'N/A'), skip: true },
+    { label:'Mucama',       bg:C.colA,  dataBg:C.white, values: DAYS.map((_,i) => gc(R.hk1,  i)), rowspan2: true },
+    { label:'Mucama',       bg:C.colA,  dataBg:C.gray,  values: DAYS.map((_,i) => gc(R.hk2,  i)), skip: true },
+    // Sección tarde
+    { section: 'Turno de 2 p.m hasta las 10 p.m', bg: C.section },
+    { label:'Front',        bg:C.colA,  dataBg:C.white, values: DAYS.map((_,i) => gc(R.frontT,i)) },
+    { label:'Cocina',       bg:C.colA,  dataBg:C.white, values: DAYS.map((_,i) => gc(R.kitT,  i)) },
+    { label:'Auditor - Seguridad', bg:C.colA, dataBg:C.white, values: DAYS.map((_,i) => gc(R.audit, i)) },
+    // Sección otros
+    { gap: true },
+    { label:'Día libre semanal', bg:C.colA, dataBg:C.white, values: DAYS.map((_,i) => gc(R.dOff,  i)) },
+    { label:'Día acumulado',     bg:C.colA, dataBg:C.white, values: DAYS.map((_,i) => gc(R.accum, i)) },
+    { label:'Vacaciones',        bg:C.colA, dataBg:C.white, values: DAYS.map((_,i) => gc(R.vac,   i)) },
+    { label:'PSG',               bg:C.colA, dataBg:C.white, values: DAYS.map((_,i) => gc(R.psg,   i)) },
+    { label:'Incapacidad',       bg:C.colA, dataBg:C.white, values: DAYS.map((_,i) => gc(R.incap, i)) },
+    { label:'Ausencias',         bg:C.colA, dataBg:C.white, values: DAYS.map((_,i) => gc(R.ausent,i)) },
+  ];
+
+  // ── Build HTML ──
+  const cellStyle = (bg, bold=false, center=true, small=false) =>
+    `style="background:${bg};padding:5px 4px;border:1px solid #bbb;font-size:${small?'8.5':'9.5'}pt;font-weight:${bold?'700':'400'};text-align:${center?'center':'left'};vertical-align:middle;word-break:break-word;"`;
+
+  let tableRows = '';
+
+  // Header row 1 — días
+  tableRows += `<tr>
+    <td ${cellStyle(C.colA, false, false)} style="background:${C.colA};border:1px solid #bbb;padding:5px 4px;"></td>
+    ${DAYS.map(d => `<td ${cellStyle(C.gold, true)}>${d}</td>`).join('')}
+  </tr>`;
+
+  // Header row 2 — fechas
+  tableRows += `<tr>
+    <td style="background:${C.colA};border:1px solid #bbb;padding:4px;"></td>
+    ${dateLabels.map(dl => `<td ${cellStyle(C.white, false, true, true)}>${dl}</td>`).join('')}
+  </tr>`;
+
+  rows.forEach(row => {
+    if (row.gap) {
+      tableRows += `<tr><td colspan="8" style="height:6px;border:none;background:#fff;"></td></tr>`;
+      return;
+    }
+    if (row.section) {
+      tableRows += `<tr>
+        <td colspan="8" style="background:${row.bg};padding:5px 8px;border:1px solid #bbb;font-size:9.5pt;font-weight:700;text-align:center;">${row.section}</td>
+      </tr>`;
+      return;
+    }
+    if (row.skip) return; // handled by rowspan2
+
+    if (row.rowspan2) {
+      // Find the matching skip row
+      const idx   = rows.indexOf(row);
+      const skip  = rows[idx + 1];
+      const vals2 = skip?.values || [];
+      tableRows += `<tr>
+        <td rowspan="2" ${cellStyle(row.bg, true, false)}>${row.label}</td>
+        ${row.values.map(v => `<td ${cellStyle(row.dataBg)}>${v || ''}</td>`).join('')}
+      </tr>
+      <tr>
+        ${vals2.map(v => `<td ${cellStyle(skip.dataBg)}>${v || ''}</td>`).join('')}
+      </tr>`;
+      return;
+    }
+
+    tableRows += `<tr>
+      <td ${cellStyle(row.bg, true, false)}>${row.label}</td>
+      ${row.values.map(v => `<td ${cellStyle(row.dataBg)}>${v || ''}</td>`).join('')}
+    </tr>`;
+  });
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>${weekLabel}</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: Arial, sans-serif; background: #fff; padding: 14px; }
+  h2 {
+    text-align: center; font-size: 13pt; font-weight: 700;
+    margin-bottom: 10px; color: #1a1a2e;
+    padding: 8px 0; background: #E6C35C; border-radius: 4px;
+  }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  td { overflow: hidden; }
+  col.label-col { width: 13%; }
+  col.day-col   { width: 12.43%; }
+  @page {
+    size: A4 landscape;
+    margin: 10mm 8mm;
+  }
+  @media print {
+    body { padding: 0; }
+    button { display: none !important; }
+    h2 { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    td  { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<h2>${weekLabel}</h2>
+<table>
+  <colgroup>
+    <col class="label-col">
+    <col class="day-col"><col class="day-col"><col class="day-col">
+    <col class="day-col"><col class="day-col"><col class="day-col"><col class="day-col">
+  </colgroup>
+  <tbody>${tableRows}</tbody>
+</table>
+<div style="text-align:right;margin-top:10px;font-size:8pt;color:#aaa">
+  Generado: ${new Date().toLocaleDateString('es-CR')}
+</div>
+<script>
+  window.addEventListener('load', function() {
+    setTimeout(function() { window.print(); }, 400);
+  });
+<\/script>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const win  = window.open(url, '_blank');
+  if (!win) {
+    showToast('⚠️ El navegador bloqueó la ventana. Permití popups para este sitio.', 'warn');
+    return;
+  }
+  win.addEventListener('unload', () => URL.revokeObjectURL(url));
+  showToast('✅ Abriendo vista de impresión PDF…', 'success');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  REPORTS
+// ═══════════════════════════════════════════════════════════
+function generateReport() {
+  const type    = document.getElementById('reportType').value;
+  const content = document.getElementById('reportContent');
+
+  switch(type) {
+    case 'hours': {
+      const mRows = [R.frontM, R.kitM, R.maint, R.hk1, R.hk2, R.mgmt];
+      const eRows = [R.frontT, R.kitT, R.audit];
+      const empHours = {};
+      employees.forEach(e => empHours[e.name] = { morning:0, evening:0 });
+
+      for (let d = 0; d < 7; d++) {
+        mRows.forEach(ri => {
+          const v = scheduleData[ri]?.[d] || '';
+          v.split(/[—\-\/,]+/).forEach(n => {
+            const name = n.trim().split(' ')[0];
+            if (empHours[name] !== undefined) empHours[name].morning++;
+          });
+        });
+        eRows.forEach(ri => {
+          const v = scheduleData[ri]?.[d] || '';
+          v.split(/[—\-\/,]+/).forEach(n => {
+            const name = n.trim().split(' ')[0];
+            if (empHours[name] !== undefined) empHours[name].evening++;
+          });
+        });
+      }
+
+      let rows_html = '';
+      employees.forEach(e => {
+        const m  = empHours[e.name]?.morning || 0;
+        const ev = empHours[e.name]?.evening || 0;
+        rows_html += `<tr>
+          <td><strong>${e.name}</strong></td>
+          <td>${DEPT_LABELS[e.department]}</td>
+          <td>${m}</td><td>${ev}</td>
+          <td><strong>${(m+ev)*8}h</strong></td>
+        </tr>`;
+      });
+      content.innerHTML = `
+        <h3 style="margin-bottom:1rem;font-family:'DM Serif Display',serif">Horas Trabajadas</h3>
+        <table class="report-table"><thead><tr>
+          <th>Empleado</th><th>Departamento</th><th>Turnos Mañana</th><th>Turnos Tarde</th><th>Total Horas</th>
+        </tr></thead><tbody>${rows_html}</tbody></table>`;
+      break;
+    }
+    case 'coverage': {
+      let html = `<h3 style="margin-bottom:1rem;font-family:'DM Serif Display',serif">Cobertura por Día</h3>
+        <table class="report-table"><thead><tr>
+          <th>Día</th><th>Front M</th><th>Front T</th><th>Cocina M</th><th>Cocina T</th><th>Auditor</th>
+        </tr></thead><tbody>`;
+      DAYS.forEach((day,i) => {
+        html += `<tr><td><strong>${day}</strong></td>
+          <td>${scheduleData[R.frontM]?.[i]||'—'}</td>
+          <td>${scheduleData[R.frontT]?.[i]||'—'}</td>
+          <td>${scheduleData[R.kitM]?.[i]  ||'—'}</td>
+          <td>${scheduleData[R.kitT]?.[i]  ||'—'}</td>
+          <td>${scheduleData[R.audit]?.[i] ||'—'}</td></tr>`;
+      });
+      html += '</tbody></table>';
+      content.innerHTML = html;
+      break;
+    }
+    case 'conflicts': {
+      validateSchedule();
+      content.innerHTML = `<div class="alert alert-info">ℹ️ Se abrió el modal de validación con el detalle de conflictos.</div>`;
+      break;
+    }
+    case 'daysoff': {
+      let html = `<h3 style="margin-bottom:1rem;font-family:'DM Serif Display',serif">Días Libres Asignados</h3>
+        <table class="report-table"><thead><tr><th>Día</th><th>Personal con día libre</th></tr></thead><tbody>`;
+      DAYS.forEach((day,i) => {
+        html += `<tr><td><strong>${day}</strong></td><td>${scheduleData[R.dOff]?.[i]||'—'}</td></tr>`;
+      });
+      html += '</tbody></table>';
+      content.innerHTML = html;
+      break;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  HISTORY
+// ═══════════════════════════════════════════════════════════
+function _snapshotMetricInputs() {
+  const m = {};
+  METRICS.forEach(metric => {
+    for (let d = 0; d < 7; d++) {
+      const el = document.getElementById(metricInputId(d, metric));
+      if (el) m[`${d}_${metric}`] = el.value;
+    }
+  });
+  return m;
+}
+
+function saveToHistory() {
+  // Sync any typed-but-not-entered metrics
+  METRICS.forEach(metric => {
+    for (let d = 0; d < 7; d++) {
+      const el = document.getElementById(metricInputId(d, metric));
+      if (el && el.value.trim()) onMetricInput(d, metric, el.value.trim());
+    }
+  });
+
+  const weekLabel = document.getElementById('weekNumber').value.trim() || 'Semana sin etiqueta';
+  const startVal  = document.getElementById('startDate').value;
+  const hasData   = Object.keys(scheduleData).length > 0 ||
+    Object.keys(metricsData).some(k => !k.includes('_count') && metricsData[k]);
+  if (!hasData) { showToast('El horario está vacío. Completá datos antes de guardar.', 'warn'); return; }
+
+  const snapshot = {
+    id:           Date.now(),
+    weekLabel,
+    startDate:    startVal,
+    savedAt:      new Date().toLocaleString('es-CR'),
+    scheduleData: JSON.parse(JSON.stringify(scheduleData)),
+    metricsData:  JSON.parse(JSON.stringify(metricsData)),
+    metricInputs: _snapshotMetricInputs(),
+  };
+
+  scheduleHistory.unshift(snapshot);
+  if (scheduleHistory.length > 52) scheduleHistory.pop();
+  localStorage.setItem('hotelScheduleHistory', JSON.stringify(scheduleHistory));
+  renderHistory();
+  showToast(`✅ "${weekLabel}" guardado en el historial.`, 'success');
+}
+
+function loadFromHistory(id) {
+  const snap = scheduleHistory.find(s => s.id === id);
+  if (!snap) return;
+  if (!confirm(`¿Cargar "${snap.weekLabel}"? Se reemplazará el horario actual.`)) return;
+
+  clearSchedule(true);
+  Object.entries(snap.scheduleData || {}).forEach(([ri,days]) => {
+    Object.entries(days).forEach(([d,v]) => setCell(+ri, +d, v));
+  });
+  Object.assign(metricsData, snap.metricsData || {});
+
+  if (snap.metricInputs) {
+    Object.entries(snap.metricInputs).forEach(([key, val]) => {
+      const under = key.indexOf('_');
+      const d     = +key.slice(0, under);
+      const m     = key.slice(under + 1);
+      const el    = document.getElementById(metricInputId(d, m));
+      if (el) el.value = val;
+    });
+  }
+
+  if (snap.weekLabel) document.getElementById('weekNumber').value = snap.weekLabel;
+  if (snap.startDate) { document.getElementById('startDate').value = snap.startDate; updateWeekDates(); }
+
+  updateStats();
+  switchTab('generator');
+  showToast(`📂 "${snap.weekLabel}" cargado.`, 'success');
+}
+
+function deleteFromHistory(id) {
+  const snap = scheduleHistory.find(s => s.id === id);
+  if (!snap || !confirm(`¿Eliminar "${snap.weekLabel}" del historial?`)) return;
+  scheduleHistory = scheduleHistory.filter(s => s.id !== id);
+  localStorage.setItem('hotelScheduleHistory', JSON.stringify(scheduleHistory));
+  renderHistory();
+  showToast('🗑️ Eliminado.', 'info');
+}
+
+function exportHistoryJSON(id) {
+  const snap = scheduleHistory.find(s => s.id === id);
+  if (!snap) return;
+  const blob = new Blob([JSON.stringify(snap, null, 2)], { type:'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `Horario_${snap.weekLabel.replace(/[^a-zA-Z0-9]/g,'_')}.json`;
+  a.click(); URL.revokeObjectURL(url);
+  showToast('📥 JSON exportado.', 'success');
+}
+
+function importScheduleJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const snap = JSON.parse(e.target.result);
+      if (!snap.scheduleData && !snap.weekLabel) throw new Error('Formato inválido');
+      snap.id      = snap.id || Date.now();
+      snap.savedAt = snap.savedAt || new Date().toLocaleString('es-CR');
+      if (!scheduleHistory.find(s => s.id === snap.id)) {
+        scheduleHistory.unshift(snap);
+        localStorage.setItem('hotelScheduleHistory', JSON.stringify(scheduleHistory));
+      }
+      renderHistory();
+      showToast(`✅ "${snap.weekLabel}" importado.`, 'success');
+    } catch {
+      showToast('❌ Archivo JSON inválido.', 'danger');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  if (!list) return;
+
+  if (!scheduleHistory.length) {
+    list.innerHTML = `<div class="emp-empty"><p style="font-size:2rem">🗂️</p><p>Aún no hay horarios guardados.</p></div>`;
+    return;
+  }
+
+  list.innerHTML = scheduleHistory.map(snap => {
+    const filledCells = Object.values(snap.scheduleData || {})
+      .flatMap(d => Object.values(d)).filter(v => v && v !== '—').length;
+    const b = Object.entries(snap.metricsData || {})
+      .filter(([k]) => k.includes('_Desayunos') && !k.includes('_count'))
+      .reduce((s,[,v]) => s + (parseInt(v)||0), 0);
+    const c = Object.entries(snap.metricsData || {})
+      .filter(([k]) => k.includes('_Cenas') && !k.includes('_count'))
+      .reduce((s,[,v]) => s + (parseInt(v)||0), 0);
+    const dateObj   = snap.startDate ? parseDateLocal(snap.startDate) : null;
+    const dateNum   = dateObj ? dateObj.getDate() : '?';
+    const dateMonth = dateObj ? MONTHS[dateObj.getMonth()] : '';
+
+    return `<div class="hist-card" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--sand)'">
+      <div class="hist-date">${dateNum}<small>${dateMonth}</small></div>
+      <div class="hist-info">
+        <strong>${snap.weekLabel}</strong>
+        <span class="hist-sub">Guardado: ${snap.savedAt}</span>
+        <div class="hist-tags">
+          <span class="hist-tag green">🍳 ${b} desayunos</span>
+          <span class="hist-tag blue">🍽️ ${c} cenas</span>
+          <span class="hist-tag gray">📋 ${filledCells} celdas</span>
+        </div>
+      </div>
+      <div class="hist-actions">
+        <button class="btn btn-success btn-sm" onclick="loadFromHistory(${snap.id})">📂 Cargar</button>
+        <button class="btn btn-primary btn-sm" onclick="exportHistoryJSON(${snap.id})">📥 JSON</button>
+        <button class="btn btn-danger btn-sm"  onclick="deleteFromHistory(${snap.id})">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  TOAST NOTIFICATIONS
+// ═══════════════════════════════════════════════════════════
+function showToast(msg, type='info') {
+  const existing = document.getElementById('toast-notification');
+  if (existing) existing.remove();
+
+  const colors = { info:'#3b82f6', success:'#22c55e', warn:'#f59e0b', danger:'#ef4444' };
+  const icons  = { info:'ℹ️', success:'✅', warn:'⚠️', danger:'❌' };
+
+  const toast = document.createElement('div');
+  toast.id = 'toast-notification';
+  toast.style.cssText = `
+    position:fixed; bottom:24px; right:24px; z-index:20000;
+    background:var(--ink); color:var(--cream);
+    padding:12px 20px; border-radius:10px;
+    box-shadow:0 12px 48px rgba(26,26,46,0.3);
+    font-family:'DM Sans',sans-serif;
+    font-size:13px; font-weight:500;
+    display:flex; align-items:center; gap:10px;
+    border-left:4px solid ${colors[type]};
+    max-width:380px;
+    animation: toastIn 0.3s ease;
+  `;
+  toast.innerHTML = `
+    <style>@keyframes toastIn{from{transform:translateX(20px);opacity:0}to{transform:translateX(0);opacity:1}}</style>
+    <span>${icons[type]}</span><span>${msg}</span>`;
+
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.style.transition = 'opacity 0.3s';
+    toast.style.opacity = '0';
+    setTimeout(() => toast.remove(), 300);
+  }, 3500);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PORTAL — section switcher
+// ═══════════════════════════════════════════════════════════
+function showPortalSection(sec) {
+  // Only 'schedule' section remains in portal now
+  document.getElementById('portalSectionSchedule').style.display = '';
+  const btnS = document.getElementById('portalBtnSchedule');
+  if (btnS) btnS.classList.add('btn-gold');
+}
+
+function updateReqFields() {}  // kept for legacy, unused
+
+// ─── Open/close expediente overlay ───
+let expCurrentEmployee = null;
+
+let _expFromAuth = false;
+
+function openExpedienteFromAuth() {
+  _expFromAuth = true;
+  document.getElementById('auth-overlay').classList.add('hidden');
+  expCurrentEmployee = null;
+  document.getElementById('expLogin').style.display = '';
+  document.getElementById('expDashboard').style.display = 'none';
+  document.getElementById('exp-username').value = '';
+  document.getElementById('exp-password').value = '';
+  document.getElementById('exp-auth-error').style.display = 'none';
+  document.getElementById('expBackBtn').textContent = '← Menú principal';
+  document.getElementById('expediente-overlay').classList.remove('hidden');
+  setTimeout(() => document.getElementById('exp-username').focus(), 100);
+}
+
+function openExpediente() {
+  _expFromAuth = false;
+  expCurrentEmployee = null;
+  document.getElementById('expLogin').style.display = '';
+  document.getElementById('expDashboard').style.display = 'none';
+  document.getElementById('exp-username').value = '';
+  document.getElementById('exp-password').value = '';
+  document.getElementById('exp-auth-error').style.display = 'none';
+  document.getElementById('expBackBtn').textContent = '← Volver al Portal';
+  document.getElementById('expediente-overlay').classList.remove('hidden');
+  setTimeout(() => document.getElementById('exp-username').focus(), 100);
+}
+
+function closeExpediente() {
+  document.getElementById('expediente-overlay').classList.add('hidden');
+  expCurrentEmployee = null;
+  if (_expFromAuth) {
+    document.getElementById('auth-overlay').classList.remove('hidden');
+    _expFromAuth = false;
+  }
+}
+
+function doExpLogin() {
+  const u = document.getElementById('exp-username').value.trim().toLowerCase();
+  const p = document.getElementById('exp-password').value;
+  const emp = employees.find(e => e.portalUser && e.portalUser === u && e.portalPass === p);
+  if (!emp) {
+    document.getElementById('exp-auth-error').style.display = 'block';
+    document.getElementById('exp-password').value = '';
+    return;
+  }
+  expCurrentEmployee = emp;
+  document.getElementById('exp-auth-error').style.display = 'none';
+  document.getElementById('expLogin').style.display = 'none';
+  document.getElementById('expDashboard').style.display = '';
+  document.getElementById('expDashTitle').textContent = `Mi Expediente — ${emp.name}`;
+  document.getElementById('expDashSub').textContent =
+    `${DEPT_LABELS[emp.department]||emp.department} · ${emp.role || ''} · Usuario: ${emp.portalUser}`;
+  renderExpRequests();
+}
+
+function doExpLogout() {
+  expCurrentEmployee = null;
+  document.getElementById('expLogin').style.display = '';
+  document.getElementById('expDashboard').style.display = 'none';
+  document.getElementById('exp-username').value = '';
+  document.getElementById('exp-password').value = '';
+}
+
+function updateExpReqFields() {
+  const t = document.getElementById('expReqType').value;
+  document.getElementById('expIncapAlert').style.display = t === 'incapacity' ? '' : 'none';
+}
+
+function submitExpRequest() {
+  if (!expCurrentEmployee) return;
+  const type     = document.getElementById('expReqType').value;
+  const dateFrom = document.getElementById('expReqDateFrom').value;
+  const dateTo   = document.getElementById('expReqDateTo').value;
+  const notes    = document.getElementById('expReqNotes').value.trim();
+
+  if (!dateFrom) { showToast('Ingresá la fecha de inicio.', 'warn'); return; }
+
+  const req = {
+    id:         Date.now(),
+    empId:      expCurrentEmployee.id,
+    name:       expCurrentEmployee.name,
+    type,
+    dateFrom,
+    dateTo:     dateTo || dateFrom,
+    notes,
+    status:     'pending',
+    createdAt:  new Date().toLocaleString('es-CR'),
+    adminNote:  '',
+  };
+
+  staffRequests.unshift(req);
+  _saveRequests();
+  renderRequests();
+  renderExpRequests();
+
+  document.getElementById('expReqDateFrom').value = '';
+  document.getElementById('expReqDateTo').value   = '';
+  document.getElementById('expReqNotes').value    = '';
+  document.getElementById('expIncapAlert').style.display = 'none';
+
+  showToast(`✅ Solicitud enviada. Administración la revisará pronto.`, 'success');
+}
+
+function renderExpRequests() {
+  const wrap = document.getElementById('expRequestsList');
+  if (!wrap || !expCurrentEmployee) return;
+
+  const mine = staffRequests.filter(r => r.empId === expCurrentEmployee.id || r.name === expCurrentEmployee.name);
+
+  if (!mine.length) {
+    wrap.innerHTML = `<div class="emp-empty"><p style="font-size:2rem">📂</p><p>No tenés solicitudes registradas aún.</p></div>`;
+    return;
+  }
+
+  const statusIcon  = { pending:'⏳', approved:'✅', rejected:'❌' };
+  const statusLabel = { pending:'Pendiente', approved:'Aprobado', rejected:'Rechazado' };
+  const statusColor = { pending:'#f59e0b', approved:'#22c55e', rejected:'#ef4444' };
+
+  wrap.innerHTML = mine.map(r => `
+    <div style="border:1.5px solid var(--sand);border-radius:10px;padding:14px 16px;margin-bottom:10px;background:white">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+        <div>
+          <strong style="font-size:13px;color:var(--ink)">${REQ_TYPE_LABELS[r.type]||r.type}</strong>
+          <span style="font-size:11px;color:#aaa;margin-left:8px">${r.dateFrom}${r.dateTo !== r.dateFrom ? ' → '+r.dateTo : ''}</span>
+          <span style="font-size:11px;color:#bbb;margin-left:8px">${r.createdAt}</span>
+        </div>
+        <span style="font-size:12px;font-weight:700;color:${statusColor[r.status]||'#888'}">${statusIcon[r.status]||'❓'} ${statusLabel[r.status]||r.status}</span>
+      </div>
+      ${r.notes ? `<p style="font-size:12px;color:#777;margin-top:6px">${r.notes}</p>` : ''}
+      ${r.adminNote ? `<div style="margin-top:8px;padding:8px 12px;background:var(--cream);border-radius:7px;font-size:12px;color:var(--ink2)">
+        <strong>Respuesta de administración:</strong> ${r.adminNote}
+      </div>` : ''}
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  REQUESTS SYSTEM
+// ═══════════════════════════════════════════════════════════
+const REQ_TYPE_LABELS = {
+  psg:'PSG', vacation:'Vacaciones', incapacity:'Incapacidad',
+  absence:'Ausencia', daychange:'Cambio día libre', other:'Otro'
+};
+
+let staffRequests = JSON.parse(localStorage.getItem('hotelStaffRequests') || '[]');
+function _saveRequests() { localStorage.setItem('hotelStaffRequests', JSON.stringify(staffRequests)); }
+
+function _updateReqBadge() {
+  const pending = staffRequests.filter(r => r.status === 'pending').length;
+
+  // Navbar tab badge
+  const tab = document.querySelector('.nav-tab[data-tab="requests"]');
+  if (tab) {
+    const ex = tab.querySelector('.req-badge');
+    if (ex) ex.remove();
+    if (pending > 0) {
+      const b = document.createElement('span');
+      b.className = 'req-badge';
+      b.textContent = pending > 9 ? '9+' : pending;
+      tab.appendChild(b);
+    }
+  }
+
+  // Sidebar badge
+  const sideBtn = document.getElementById('sidebar-req-btn');
+  if (sideBtn) {
+    const ex2 = sideBtn.querySelector('.sidebar-item-badge');
+    if (ex2) ex2.remove();
+    if (pending > 0) {
+      const b2 = document.createElement('span');
+      b2.className = 'sidebar-item-badge';
+      b2.textContent = pending > 9 ? '9+' : pending;
+      sideBtn.appendChild(b2);
+    }
+  }
+}
+
+function renderRequests() {
+  _updateReqBadge();
+  const list = document.getElementById('requestsList');
+  if (!list) return;
+
+  const statusFilt = document.getElementById('reqFilterStatus')?.value || '';
+  const typeFilt   = document.getElementById('reqFilterType')?.value   || '';
+
+  let data = [...staffRequests];
+  if (statusFilt) data = data.filter(r => r.status === statusFilt);
+  if (typeFilt)   data = data.filter(r => r.type   === typeFilt);
+
+  if (!data.length) {
+    list.innerHTML = `<div class="emp-empty"><p style="font-size:2rem">📨</p><p>No hay solicitudes${statusFilt||typeFilt ? ' con ese filtro' : ' registradas'}.</p></div>`;
+    return;
+  }
+
+  const statusIcon  = { pending:'⏳', approved:'✅', rejected:'❌' };
+  const statusLabel = { pending:'Pendiente', approved:'Aprobado', rejected:'Rechazado' };
+  const statusColor = { pending:'#fffbeb;color:#92400e', approved:'#f0fdf4;color:#166534', rejected:'#fef2f2;color:#991b1b' };
+
+  list.innerHTML = data.map(r => `
+    <div class="hist-card" id="reqCard_${r.id}">
+      <div class="hist-date" style="font-size:1rem;min-width:72px;text-align:center">
+        <div style="font-size:1.3rem">${statusIcon[r.status]}</div>
+        <small style="font-size:9px">${statusLabel[r.status]}</small>
+      </div>
+      <div class="hist-info">
+        <strong>${r.name}</strong>
+        <span class="hist-sub">${REQ_TYPE_LABELS[r.type]||r.type} · ${r.dateFrom}${r.dateTo !== r.dateFrom ? ' → '+r.dateTo : ''} · ${r.createdAt}</span>
+        ${r.notes ? `<p style="font-size:12px;color:#666;margin-top:4px">${r.notes}</p>` : ''}
+        ${r.adminNote ? `<p style="font-size:11px;padding:4px 8px;background:var(--cream);border-radius:6px;margin-top:4px;color:var(--ink2)">💬 ${r.adminNote}</p>` : ''}
+        <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <input type="text" placeholder="Nota de respuesta (opcional)" id="reqNote_${r.id}"
+            value="${r.adminNote||''}" style="flex:1;min-width:180px;padding:5px 10px;border:1px solid var(--sand);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif">
+        </div>
+      </div>
+      <div class="hist-actions" style="flex-direction:column;gap:5px">
+        <button class="btn btn-success btn-sm" onclick="resolveRequest(${r.id},'approved')">✅ Aprobar</button>
+        <button class="btn btn-danger btn-sm"  onclick="resolveRequest(${r.id},'rejected')">❌ Rechazar</button>
+        <button class="btn btn-outline btn-sm" onclick="resolveRequest(${r.id},'pending')">⏳ Pendiente</button>
+        <button class="btn btn-primary btn-sm" onclick="deleteRequest(${r.id})">🗑️</button>
+      </div>
+    </div>`).join('');
+}
+
+function resolveRequest(id, status) {
+  const req = staffRequests.find(r => r.id === id);
+  if (!req) return;
+  req.status    = status;
+  req.adminNote = document.getElementById(`reqNote_${id}`)?.value.trim() || req.adminNote;
+  _saveRequests();
+  renderRequests();
+  const labels = { approved:'aprobada', rejected:'rechazada', pending:'marcada como pendiente' };
+  showToast(`Solicitud de ${req.name} ${labels[status]}.`, status === 'approved' ? 'success' : 'info');
+}
+
+function deleteRequest(id) {
+  const req = staffRequests.find(r => r.id === id);
+  if (!req || !confirm(`¿Eliminar la solicitud de ${req.name}?`)) return;
+  staffRequests = staffRequests.filter(r => r.id !== id);
+  _saveRequests();
+  renderRequests();
+  showToast('Solicitud eliminada.', 'info');
+}
+
+function clearAllRequests() {
+  const toKeep = staffRequests.filter(r => r.status === 'pending');
+  if (!confirm(`¿Eliminar todas las solicitudes resueltas? Se conservarán ${toKeep.length} pendientes.`)) return;
+  staffRequests = toKeep;
+  _saveRequests();
+  renderRequests();
+  showToast('Solicitudes resueltas eliminadas.', 'info');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  EXCEL HISTORICAL CONVERTER
+// ═══════════════════════════════════════════════════════════
+
+// Parsed sheets cache
+let _excParsedSheets = [];
+
+function openExcelConverter() {
+  _resetExcelConverter();
+  document.getElementById('excelConverterModal').classList.add('active');
+}
+
+function _resetExcelConverter() {
+  _excParsedSheets = [];
+  document.getElementById('excConvStep1').style.display = '';
+  document.getElementById('excConvStep2').style.display = 'none';
+  document.getElementById('excConvAnalyzing').style.display = '';
+  document.getElementById('excConvResults').style.display = 'none';
+  document.getElementById('excFileInput').value = '';
+  const dz = document.getElementById('excDropZone');
+  if (dz) dz.style.borderColor = 'var(--sand)';
+}
+
+function _handleExcelConverterDrop(event) {
+  const file = event.dataTransfer.files[0];
+  if (file) _loadExcelConverterFile(file);
+}
+
+function _handleExcelConverterFile(event) {
+  const file = event.target.files[0];
+  if (file) _loadExcelConverterFile(file);
+}
+
+function _loadExcelConverterFile(file) {
+  document.getElementById('excConvStep1').style.display = 'none';
+  document.getElementById('excConvStep2').style.display = '';
+  document.getElementById('excConvAnalyzing').style.display = '';
+  document.getElementById('excConvResults').style.display = 'none';
+  document.getElementById('excConvFilename').textContent = file.name;
+
+  const run = () => {
+    if (file.name.toLowerCase().endsWith('.csv')) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const lines = e.target.result.split('\n')
+          .map(l => l.split(',').map(c => c.trim().replace(/^"|"$/g, '')));
+        _excParsedSheets = [{ name: file.name.replace(/\.[^.]+$/, ''), data: lines }];
+        _analyzeAndRenderSheets();
+      };
+      reader.readAsText(file, 'UTF-8');
+    } else {
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: true });
+          _excParsedSheets = wb.SheetNames.map(name => ({
+            name,
+            data: XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: '', raw: false })
+          }));
+          _analyzeAndRenderSheets();
+        } catch(err) {
+          showToast('❌ Error al leer el archivo: ' + err.message, 'danger');
+          _resetExcelConverter();
+          document.getElementById('excConvStep1').style.display = '';
+          document.getElementById('excConvStep2').style.display = 'none';
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+  };
+
+  if (typeof XLSX === 'undefined') {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload = run;
+    s.onerror = () => showToast('❌ No se pudo cargar la librería Excel. Verificá tu conexión.', 'danger');
+    document.head.appendChild(s);
+  } else {
+    run();
+  }
+}
+
+// ── Fuzzy row label matcher ──
+const _ROW_ALIASES = {
+  desayunos:   { type:'metric', key:'Desayunos' },
+  breakfast:   { type:'metric', key:'Desayunos' },
+  cenas:       { type:'metric', key:'Cenas' },
+  dinner:      { type:'metric', key:'Cenas' },
+  cena:        { type:'metric', key:'Cenas' },
+  'check-in':  { type:'metric', key:'Check-in' },
+  checkin:     { type:'metric', key:'Check-in' },
+  'check in':  { type:'metric', key:'Check-in' },
+  'check-out': { type:'metric', key:'Check-out' },
+  checkout:    { type:'metric', key:'Check-out' },
+  'check out': { type:'metric', key:'Check-out' },
+  gerencia:     { type:'cell', ri:'mgmt'   },
+  gerente:      { type:'cell', ri:'mgmt'   },
+  'front (m)':  { type:'cell', ri:'frontM' },
+  'front m':    { type:'cell', ri:'frontM' },
+  'front desk m':{ type:'cell', ri:'frontM'},
+  front:        { type:'cell', ri:'frontM' },
+  recepcion:    { type:'cell', ri:'frontM' },
+  recepción:    { type:'cell', ri:'frontM' },
+  'cocina (m)': { type:'cell', ri:'kitM'   },
+  'cocina m':   { type:'cell', ri:'kitM'   },
+  cocina:       { type:'cell', ri:'kitM'   },
+  kitchen:      { type:'cell', ri:'kitM'   },
+  mantenimiento:{ type:'cell', ri:'maint'  },
+  mantencion:   { type:'cell', ri:'maint'  },
+  mantención:   { type:'cell', ri:'maint'  },
+  maintenance:  { type:'cell', ri:'maint'  },
+  'mucama 1 (m)':{ type:'cell', ri:'hk1'  },
+  'mucama 1':   { type:'cell', ri:'hk1'   },
+  mucama1:      { type:'cell', ri:'hk1'   },
+  'ama de llaves 1':{ type:'cell', ri:'hk1'},
+  'housekeeping 1':{ type:'cell', ri:'hk1'},
+  'mucama 2 (m)':{ type:'cell', ri:'hk2'  },
+  'mucama 2':   { type:'cell', ri:'hk2'   },
+  mucama2:      { type:'cell', ri:'hk2'   },
+  'ama de llaves 2':{ type:'cell', ri:'hk2'},
+  'housekeeping 2':{ type:'cell', ri:'hk2'},
+  'front (t)':  { type:'cell', ri:'frontT'},
+  'front t':    { type:'cell', ri:'frontT'},
+  'front tarde':{ type:'cell', ri:'frontT'},
+  'recepcion t':{ type:'cell', ri:'frontT'},
+  'cocina (t)': { type:'cell', ri:'kitT'  },
+  'cocina t':   { type:'cell', ri:'kitT'  },
+  'cocina tarde':{ type:'cell', ri:'kitT' },
+  'auditor / seg.':{ type:'cell', ri:'audit'},
+  'auditor':    { type:'cell', ri:'audit' },
+  'auditor nocturno':{ type:'cell', ri:'audit'},
+  seguridad:    { type:'cell', ri:'audit' },
+  'night audit':{ type:'cell', ri:'audit' },
+  'día libre semanal':{ type:'cell', ri:'dOff'},
+  'dia libre semanal':{ type:'cell', ri:'dOff'},
+  'día libre':  { type:'cell', ri:'dOff'  },
+  'dia libre':  { type:'cell', ri:'dOff'  },
+  'day off':    { type:'cell', ri:'dOff'  },
+  libre:        { type:'cell', ri:'dOff'  },
+  'día acumulado':{ type:'cell', ri:'accum'},
+  'dia acumulado':{ type:'cell', ri:'accum'},
+  acumulado:    { type:'cell', ri:'accum' },
+  vacaciones:   { type:'cell', ri:'vac'   },
+  vacation:     { type:'cell', ri:'vac'   },
+  psg:          { type:'cell', ri:'psg'   },
+  'permiso sin goce':{ type:'cell', ri:'psg'},
+  incapacidad:  { type:'cell', ri:'incap' },
+  incapacidades:{ type:'cell', ri:'incap' },
+  'sick leave': { type:'cell', ri:'incap' },
+  ausencias:    { type:'cell', ri:'ausent'},
+  ausencia:     { type:'cell', ri:'ausent'},
+  'no se presentó':{ type:'cell', ri:'ausent'},
+};
+
+const _DAY_ALIASES = {
+  lun: 0, lunes: 0, monday: 0, mon: 0,
+  mar: 1, martes: 1, tuesday: 1, tue: 1,
+  mié: 2, mie: 2, miercoles: 2, miércoles: 2, wednesday: 2, wed: 2,
+  jue: 3, jueves: 3, thursday: 3, thu: 3,
+  vie: 4, viernes: 4, friday: 4, fri: 4,
+  sáb: 5, sab: 5, sabado: 5, sábado: 5, saturday: 5, sat: 5,
+  dom: 6, domingo: 6, sunday: 6, sun: 6,
+};
+
+function _normalizeStr(s) {
+  return String(s || '').toLowerCase().trim()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // remove accents
+    .replace(/\s+/g, ' ');
+}
+
+function _matchRowLabel(raw) {
+  const n = _normalizeStr(raw);
+  if (_ROW_ALIASES[n]) return _ROW_ALIASES[n];
+  // Try partial match for longer labels
+  for (const key of Object.keys(_ROW_ALIASES)) {
+    if (n.includes(key) || key.includes(n)) return _ROW_ALIASES[key];
+  }
+  return null;
+}
+
+function _detectDayColumns(rows) {
+  // Scan first 6 rows for a row that has 3+ day-name matches
+  for (let ri = 0; ri < Math.min(6, rows.length); ri++) {
+    const row = rows[ri];
+    const dayMap = {}; // col index -> day index (0-6)
+    for (let ci = 0; ci < row.length; ci++) {
+      const n = _normalizeStr(row[ci]);
+      if (_DAY_ALIASES[n] !== undefined) dayMap[ci] = _DAY_ALIASES[n];
+      // Also try partial: "lunes 3 abr" → contains "lunes"
+      else {
+        for (const dk of Object.keys(_DAY_ALIASES)) {
+          if (n.startsWith(dk) || n.includes(' ' + dk)) {
+            dayMap[ci] = _DAY_ALIASES[dk];
+            break;
+          }
+        }
+      }
+    }
+    if (Object.keys(dayMap).length >= 3) {
+      return { headerRow: ri, dayMap };
+    }
+  }
+  return null;
+}
+
+function _detectDateFromSheet(rows, headerRow) {
+  // Look for a date pattern in the first few rows
+  const dateRe = /(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/;
+  const isoRe  = /(\d{4})-(\d{2})-(\d{2})/;
+  for (let ri = 0; ri < Math.min(headerRow + 2, rows.length); ri++) {
+    for (const cell of rows[ri]) {
+      const s = String(cell || '');
+      let m = s.match(isoRe);
+      if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+      m = s.match(dateRe);
+      if (m) {
+        const [, d, mo, y] = m;
+        const year = y.length === 2 ? '20' + y : y;
+        return `${year}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`;
+      }
+    }
+  }
+  return '';
+}
+
+function _detectWeekLabel(sheetName, rows) {
+  // First try the sheet name
+  if (sheetName && !sheetName.match(/^sheet\d*$/i)) return sheetName;
+  // Then try first cell of first row
+  const first = String(rows[0]?.[0] || '').trim();
+  if (first && first.length > 2 && first.length < 60) return first;
+  return 'Semana importada';
+}
+
+function _parseSheet(sheet) {
+  const { name, data: rows } = sheet;
+  const result = {
+    name,
+    weekLabel: _detectWeekLabel(name, rows),
+    startDate: _detectDateFromSheet(rows, 0),
+    recognized: [],
+    unrecognized: [],
+    scheduleData: {},
+    metricsData: {},
+    metricInputs: {},
+    filledCells: 0,
+  };
+
+  const det = _detectDayColumns(rows);
+  if (!det) {
+    result.error = 'No se detectaron columnas de días de la semana.';
+    return result;
+  }
+
+  const { headerRow, dayMap } = det;
+  const colToDay = dayMap; // { colIndex: dayIndex }
+
+  // Process rows below the header
+  for (let ri = headerRow + 1; ri < rows.length; ri++) {
+    const row = rows[ri];
+    if (!row || !row[0]) continue;
+    const rawLabel = String(row[0]).trim();
+    if (!rawLabel) continue;
+
+    const match = _matchRowLabel(rawLabel);
+    if (!match) {
+      if (rawLabel.length > 1 && rawLabel.length < 40) {
+        result.unrecognized.push(rawLabel);
+      }
+      continue;
+    }
+
+    const riIdx = typeof match.ri === 'string' ? R[match.ri] : match.ri;
+    result.recognized.push(rawLabel + ' → ' + (match.key || match.ri));
+
+    for (const [colStr, dayIdx] of Object.entries(colToDay)) {
+      const col = parseInt(colStr);
+      const val = String(row[col] || '').trim();
+      if (!val || val === '—' || val === '-') continue;
+
+      if (match.type === 'metric') {
+        const mKey = match.key;
+        result.metricsData[`${dayIdx}_${mKey}`] = val;
+        result.metricInputs[`${dayIdx}_${mKey}`] = val;
+        result.filledCells++;
+      } else {
+        if (!result.scheduleData[riIdx]) result.scheduleData[riIdx] = {};
+        result.scheduleData[riIdx][dayIdx] = val;
+        result.filledCells++;
+      }
+    }
+  }
+
+  return result;
+}
+
+function _analyzeAndRenderSheets() {
+  setTimeout(() => {
+    _excParsedSheets = _excParsedSheets.map(_parseSheet);
+
+    document.getElementById('excConvAnalyzing').style.display = 'none';
+    document.getElementById('excConvResults').style.display = '';
+
+    const valid = _excParsedSheets.filter(s => s.filledCells > 0);
+    const total = _excParsedSheets.length;
+    document.getElementById('excConvSummary').textContent =
+      `${total} hoja${total !== 1 ? 's' : ''} — ${valid.length} con datos reconocibles`;
+
+    const list = document.getElementById('excSheetList');
+    if (!_excParsedSheets.length) {
+      list.innerHTML = `<div class="alert alert-warn">⚠️ El archivo no contiene hojas con datos.</div>`;
+      return;
+    }
+
+    list.innerHTML = _excParsedSheets.map((s, idx) => {
+      const hasData = s.filledCells > 0;
+      const statusColor = s.error ? 'var(--danger)' : hasData ? 'var(--success)' : 'var(--warn)';
+      const statusIcon  = s.error ? '❌' : hasData ? '✅' : '⚠️';
+      const statusText  = s.error ? s.error : hasData ? `${s.filledCells} celdas reconocidas` : 'Sin datos reconocibles';
+
+      return `<div style="border:1.5px solid var(--sand);border-radius:10px;margin-bottom:10px;overflow:hidden">
+        <div style="background:var(--cream2);padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;flex:1;min-width:0">
+            <input type="checkbox" id="excSheet_${idx}" ${hasData ? 'checked' : ''} ${!hasData ? 'disabled' : ''} style="width:16px;height:16px;accent-color:var(--gold)">
+            <strong style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</strong>
+          </label>
+          <span style="font-size:11px;font-weight:700;color:${statusColor}">${statusIcon} ${statusText}</span>
+          ${hasData ? `<button class="btn btn-primary btn-sm" onclick="_importSingleExcelSheet(${idx})">📥 Importar esta</button>` : ''}
+        </div>
+        ${hasData ? `
+        <div style="padding:10px 14px">
+          <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:8px">
+            <div class="form-group" style="flex:1;min-width:180px;margin:0">
+              <label style="font-size:11px">Etiqueta de semana</label>
+              <input type="text" id="excLabel_${idx}" value="${s.weekLabel}"
+                style="width:100%;padding:6px 10px;border:1.5px solid var(--sand);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;background:white"
+                onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--sand)'">
+            </div>
+            <div class="form-group" style="flex:1;min-width:160px;margin:0">
+              <label style="font-size:11px">Fecha de inicio (lunes)</label>
+              <input type="date" id="excDate_${idx}" value="${s.startDate}"
+                style="width:100%;padding:6px 10px;border:1.5px solid var(--sand);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;background:white"
+                onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--sand)'">
+            </div>
+          </div>
+          <details style="font-size:11px;color:#888">
+            <summary style="cursor:pointer;color:var(--accent);font-weight:600">Ver detalle del mapeo</summary>
+            <div style="margin-top:8px;display:flex;gap:1rem;flex-wrap:wrap">
+              ${s.recognized.length ? `<div style="flex:1;min-width:200px">
+                <p style="font-weight:700;color:var(--success);margin-bottom:4px">✅ Reconocidas (${s.recognized.length})</p>
+                ${s.recognized.map(r => `<div style="padding:2px 0">${r}</div>`).join('')}
+              </div>` : ''}
+              ${s.unrecognized.length ? `<div style="flex:1;min-width:200px">
+                <p style="font-weight:700;color:var(--warn);margin-bottom:4px">⚠️ No reconocidas (${s.unrecognized.length})</p>
+                ${s.unrecognized.map(r => `<div style="padding:2px 0">${r}</div>`).join('')}
+              </div>` : ''}
+            </div>
+          </details>
+        </div>` : ''}
+      </div>`;
+    }).join('');
+  }, 300);
+}
+
+function _buildSnapshotFromParsed(parsed, idx) {
+  // Read editable label/date from UI
+  const labelEl = document.getElementById(`excLabel_${idx}`);
+  const dateEl  = document.getElementById(`excDate_${idx}`);
+  return {
+    id:           Date.now() + idx,
+    weekLabel:    (labelEl?.value.trim()) || parsed.weekLabel,
+    startDate:    (dateEl?.value)         || parsed.startDate,
+    savedAt:      new Date().toLocaleString('es-CR'),
+    source:       'excel-import',
+    scheduleData: JSON.parse(JSON.stringify(parsed.scheduleData)),
+    metricsData:  JSON.parse(JSON.stringify(parsed.metricsData)),
+    metricInputs: JSON.parse(JSON.stringify(parsed.metricInputs)),
+  };
+}
+
+function _importSingleExcelSheet(idx) {
+  const parsed = _excParsedSheets[idx];
+  if (!parsed || parsed.filledCells === 0) return;
+  const snap = _buildSnapshotFromParsed(parsed, idx);
+  if (scheduleHistory.find(s => s.weekLabel === snap.weekLabel && s.startDate === snap.startDate)) {
+    if (!confirm(`Ya existe "${snap.weekLabel}" en el historial. ¿Sobreescribir?`)) return;
+    scheduleHistory = scheduleHistory.filter(s => !(s.weekLabel === snap.weekLabel && s.startDate === snap.startDate));
+  }
+  scheduleHistory.unshift(snap);
+  if (scheduleHistory.length > 52) scheduleHistory.pop();
+  localStorage.setItem('hotelScheduleHistory', JSON.stringify(scheduleHistory));
+  renderHistory();
+  showToast(`✅ "${snap.weekLabel}" guardado en el historial.`, 'success');
+}
+
+function _importAllExcelSheets() {
+  const toImport = _excParsedSheets
+    .map((s, idx) => ({ s, idx }))
+    .filter(({ s, idx }) => {
+      const cb = document.getElementById(`excSheet_${idx}`);
+      return s.filledCells > 0 && cb?.checked;
+    });
+
+  if (!toImport.length) {
+    showToast('⚠️ No hay hojas seleccionadas con datos.', 'warn');
+    return;
+  }
+
+  let imported = 0;
+  let skipped  = 0;
+  toImport.forEach(({ s, idx }, i) => {
+    const snap = _buildSnapshotFromParsed(s, idx * 1000 + i);
+    const dup = scheduleHistory.find(h => h.weekLabel === snap.weekLabel && h.startDate === snap.startDate);
+    if (dup) { skipped++; return; }
+    scheduleHistory.unshift(snap);
+    imported++;
+  });
+
+  if (scheduleHistory.length > 52) scheduleHistory.splice(52);
+  localStorage.setItem('hotelScheduleHistory', JSON.stringify(scheduleHistory));
+  renderHistory();
+  closeModal('excelConverterModal');
+
+  const msg = skipped > 0
+    ? `✅ ${imported} semana${imported !== 1 ? 's' : ''} importada${imported !== 1 ? 's' : ''}. ${skipped} omitida${skipped !== 1 ? 's' : ''} (ya existían).`
+    : `✅ ${imported} semana${imported !== 1 ? 's' : ''} importada${imported !== 1 ? 's' : ''} al historial.`;
+  showToast(msg, 'success');
+}
+
+</script>
+</body>
+</html>
